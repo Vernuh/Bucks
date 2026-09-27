@@ -26,7 +26,7 @@ class RegisterScreen extends StatelessWidget {
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.pushReplacementNamed(context, Routes.home);
+                  Navigator.pushReplacementNamed(context, Routes.main);
                 },
                 child: const Text('Create Account'),
               ),

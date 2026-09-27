@@ -37,7 +37,7 @@ class LoginScreen extends StatelessWidget {
                   child: ElevatedButton(
                     onPressed: () {
                       // No real auth yet — just navigate to Home.
-                      Navigator.pushReplacementNamed(context, Routes.home);
+                      Navigator.pushReplacementNamed(context, Routes.main);
                     },
                     child: const Text('Log In'),
                   ),

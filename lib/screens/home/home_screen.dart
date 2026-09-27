@@ -36,6 +36,10 @@ class HomeScreen extends StatelessWidget {
                 child: const Text('+10 points (demo of provider)'),
               ),
               const SizedBox(height: 16),
+              // Savings and Profile are now bottom-nav tabs (Goals and
+              // Profile), so they're no longer pushed from here.
+              // Transactions is the full history screen, per your
+              // decision that it opens from a button on Home.
               Text('Go to:', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
               Expanded(
@@ -46,11 +50,9 @@ class HomeScreen extends StatelessWidget {
                   children: [
                     _NavCard('Transactions', Icons.receipt_long, Routes.transactions),
                     _NavCard('Budget', Icons.pie_chart, Routes.budget),
-                    _NavCard('Savings', Icons.savings, Routes.savings),
                     _NavCard('Reports', Icons.bar_chart, Routes.reports),
                     _NavCard('Missions', Icons.flag, Routes.missions),
                     _NavCard('BucksBoard', Icons.leaderboard, Routes.bucksboard),
-                    _NavCard('Profile', Icons.person, Routes.profile),
                   ],
                 ),
               ),
