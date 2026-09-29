@@ -29,6 +29,9 @@ class Routes {
   static const String reports = '/reports';
   static const String missions = '/missions';
   static const String bucksboard = '/bucksboard';
+  static const String achievements = '/achievements';
+  static const String chat = '/chat';
+  static const String customizeBucks = '/customize-bucks';
   static const String settings = '/settings';
 
   /// Maps every route name to the screen that should be shown.
