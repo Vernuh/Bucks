@@ -18,19 +18,13 @@ class BucksScreen extends StatelessWidget {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              // ---------------------------------------------------------
               // HEADER
-              // ---------------------------------------------------------
               const _BucksHeader(),
 
-              // ---------------------------------------------------------
               // BUCKS CHARACTER
-              // ---------------------------------------------------------
               const _BucksCharacter(),
 
-              // ---------------------------------------------------------
               // BUCKS MESSAGE
-              // ---------------------------------------------------------
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
                 child: _BucksMessage(
@@ -38,9 +32,7 @@ class BucksScreen extends StatelessWidget {
                 ),
               ),
 
-              // ---------------------------------------------------------
               // ACHIEVEMENTS + CHAT
-              // ---------------------------------------------------------
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: LayoutBuilder(
@@ -51,19 +43,13 @@ class BucksScreen extends StatelessWidget {
                         children: [
                           _AchievementsCard(
                             onTap: () {
-                              Navigator.pushNamed(
-                                context,
-                                Routes.achievements,
-                              );
+                              Navigator.pushNamed(context, Routes.achievements);
                             },
                           ),
                           const SizedBox(height: 12),
                           _ChatCard(
                             onTap: () {
-                              Navigator.pushNamed(
-                                context,
-                                Routes.chat,
-                              );
+                              Navigator.pushNamed(context, Routes.chat);
                             },
                           ),
                         ],
@@ -78,10 +64,7 @@ class BucksScreen extends StatelessWidget {
                           flex: 3,
                           child: _AchievementsCard(
                             onTap: () {
-                              Navigator.pushNamed(
-                                context,
-                                Routes.achievements,
-                              );
+                              Navigator.pushNamed(context, Routes.achievements);
                             },
                           ),
                         ),
@@ -90,10 +73,7 @@ class BucksScreen extends StatelessWidget {
                           flex: 2,
                           child: _ChatCard(
                             onTap: () {
-                              Navigator.pushNamed(
-                                context,
-                                Routes.chat,
-                              );
+                              Navigator.pushNamed(context, Routes.chat);
                             },
                           ),
                         ),
@@ -105,9 +85,7 @@ class BucksScreen extends StatelessWidget {
 
               const SizedBox(height: 16),
 
-              // ---------------------------------------------------------
               // CUSTOMIZE BUCKS
-              // ---------------------------------------------------------
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: _BucksFeatureCard(
@@ -118,19 +96,14 @@ class BucksScreen extends StatelessWidget {
                       'Customize Bucks with unlockable outfits, hats, '
                       'and accessories earned through achievements and missions.',
                   onTap: () {
-                    Navigator.pushNamed(
-                      context,
-                      Routes.customizeBucks,
-                    );
+                    Navigator.pushNamed(context, Routes.customizeBucks);
                   },
                 ),
               ),
 
               const SizedBox(height: 12),
 
-              // ---------------------------------------------------------
               // BUCKSBOARD
-              // ---------------------------------------------------------
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: _BucksFeatureCard(
@@ -141,10 +114,7 @@ class BucksScreen extends StatelessWidget {
                       'See how you rank and compare your progress '
                       'with other Bucks users.',
                   onTap: () {
-                    Navigator.pushNamed(
-                      context,
-                      Routes.bucksboard,
-                    );
+                    Navigator.pushNamed(context, Routes.bucksboard);
                   },
                 ),
               ),
@@ -158,10 +128,7 @@ class BucksScreen extends StatelessWidget {
   }
 }
 
-// ===========================================================================
 // BUCKS HEADER
-// ===========================================================================
-
 class _BucksHeader extends StatelessWidget {
   const _BucksHeader();
 
@@ -186,11 +153,7 @@ class _BucksHeader extends StatelessWidget {
                   color: Colors.white.withOpacity(0.12),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.person,
-                  color: Colors.white,
-                  size: 27,
-                ),
+                child: const Icon(Icons.person, color: Colors.white, size: 27),
               ),
 
               const SizedBox(width: 12),
@@ -212,10 +175,7 @@ class _BucksHeader extends StatelessWidget {
                     SizedBox(height: 3),
                     Text(
                       'Keep going!',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: Colors.white70, fontSize: 12),
                     ),
                   ],
                 ),
@@ -234,11 +194,7 @@ class _BucksHeader extends StatelessWidget {
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      Icons.monetization_on,
-                      color: _gold,
-                      size: 20,
-                    ),
+                    Icon(Icons.monetization_on, color: _gold, size: 20),
                     SizedBox(width: 5),
                     Text(
                       '250',
@@ -296,10 +252,7 @@ class _BucksHeader extends StatelessWidget {
   }
 }
 
-// ===========================================================================
 // BUCKS CHARACTER
-// ===========================================================================
-
 class _BucksCharacter extends StatelessWidget {
   const _BucksCharacter();
 
@@ -322,9 +275,7 @@ class _BucksCharacter extends StatelessWidget {
               height: 50,
               decoration: const BoxDecoration(
                 color: _groundGreen,
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(30),
-                ),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
               ),
             ),
           ),
@@ -347,12 +298,7 @@ class _BucksCharacter extends StatelessWidget {
                 ],
               ),
               child: const Center(
-                child: Text(
-                  '🐔',
-                  style: TextStyle(
-                    fontSize: 72,
-                  ),
-                ),
+                child: Text('🐔', style: TextStyle(fontSize: 72)),
               ),
             ),
           ),
@@ -362,25 +308,17 @@ class _BucksCharacter extends StatelessWidget {
   }
 }
 
-// ===========================================================================
 // BUCKS MESSAGE
-// ===========================================================================
-
 class _BucksMessage extends StatelessWidget {
   final String text;
 
-  const _BucksMessage({
-    required this.text,
-  });
+  const _BucksMessage({required this.text});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 18,
-        vertical: 14,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -395,11 +333,7 @@ class _BucksMessage extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.chat_bubble,
-            color: Color(0xFF1688F5),
-            size: 22,
-          ),
+          const Icon(Icons.chat_bubble, color: Color(0xFF1688F5), size: 22),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -418,18 +352,12 @@ class _BucksMessage extends StatelessWidget {
   }
 }
 
-// ===========================================================================
 // CARD SHELL
-// ===========================================================================
-
 class _CardShell extends StatelessWidget {
   final Widget child;
   final VoidCallback? onTap;
 
-  const _CardShell({
-    required this.child,
-    this.onTap,
-  });
+  const _CardShell({required this.child, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -465,16 +393,11 @@ class _CardShell extends StatelessWidget {
   }
 }
 
-// ===========================================================================
 // ACHIEVEMENTS CARD
-// ===========================================================================
-
 class _AchievementsCard extends StatelessWidget {
   final VoidCallback? onTap;
 
-  const _AchievementsCard({
-    this.onTap,
-  });
+  const _AchievementsCard({this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -516,18 +439,9 @@ class _AchievementsCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: const [
-                _AchievementIcon(
-                  icon: Icons.savings,
-                  label: 'Saver',
-                ),
-                _AchievementIcon(
-                  icon: Icons.track_changes,
-                  label: 'Tracker',
-                ),
-                _AchievementIcon(
-                  icon: Icons.star,
-                  label: 'Star',
-                ),
+                _AchievementIcon(icon: Icons.savings, label: 'Saver'),
+                _AchievementIcon(icon: Icons.track_changes, label: 'Tracker'),
+                _AchievementIcon(icon: Icons.star, label: 'Star'),
                 _AchievementIcon(
                   icon: Icons.local_fire_department,
                   label: 'Streak',
@@ -541,18 +455,12 @@ class _AchievementsCard extends StatelessWidget {
   }
 }
 
-// ===========================================================================
 // ACHIEVEMENT ICON
-// ===========================================================================
-
 class _AchievementIcon extends StatelessWidget {
   final IconData icon;
   final String label;
 
-  const _AchievementIcon({
-    required this.icon,
-    required this.label,
-  });
+  const _AchievementIcon({required this.icon, required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -565,11 +473,7 @@ class _AchievementIcon extends StatelessWidget {
             color: const Color(0xFFFFF4CE),
             borderRadius: BorderRadius.circular(13),
           ),
-          child: Icon(
-            icon,
-            color: const Color(0xFFFFB020),
-            size: 23,
-          ),
+          child: Icon(icon, color: const Color(0xFFFFB020), size: 23),
         ),
         const SizedBox(height: 5),
         Text(
@@ -585,16 +489,11 @@ class _AchievementIcon extends StatelessWidget {
   }
 }
 
-// ===========================================================================
 // CHAT CARD
-// ===========================================================================
-
 class _ChatCard extends StatelessWidget {
   final VoidCallback? onTap;
 
-  const _ChatCard({
-    this.onTap,
-  });
+  const _ChatCard({this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -635,10 +534,7 @@ class _ChatCard extends StatelessWidget {
             Text(
               'Talk to Bucks',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.grey.shade600,
-                fontSize: 10,
-              ),
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 10),
             ),
           ],
         ),
@@ -647,10 +543,7 @@ class _ChatCard extends StatelessWidget {
   }
 }
 
-// ===========================================================================
 // FEATURE CARD
-// ===========================================================================
-
 class _BucksFeatureCard extends StatelessWidget {
   final Color blue;
   final IconData icon;
@@ -677,9 +570,7 @@ class _BucksFeatureCard extends StatelessWidget {
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-          ),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(18)),
           child: Row(
             children: [
               // Icon
@@ -690,11 +581,7 @@ class _BucksFeatureCard extends StatelessWidget {
                   color: Colors.white.withOpacity(0.16),
                   borderRadius: BorderRadius.circular(15),
                 ),
-                child: Icon(
-                  icon,
-                  color: Colors.white,
-                  size: 27,
-                ),
+                child: Icon(icon, color: Colors.white, size: 27),
               ),
 
               const SizedBox(width: 14),
