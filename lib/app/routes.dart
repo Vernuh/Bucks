@@ -9,6 +9,8 @@ import '../screens/reports/reports_screen.dart';
 import '../screens/missions/missions_screen.dart';
 import '../screens/bucksboard/bucksboard_screen.dart';
 import '../screens/profile/settings_screen.dart';
+import '../screens/customize-bucks/customize_bucks_screen.dart';
+
 
 /// All named routes for BUCKS live here. Keeping them as constants
 /// avoids typos when navigating (e.g. `Navigator.pushNamed(context, Routes.transactions)`).
@@ -44,6 +46,7 @@ class Routes {
         reports: (_) => const ReportsScreen(),
         missions: (_) => const MissionsScreen(),
         bucksboard: (_) => const BucksboardScreen(),
+        customizeBucks: (_) => const CustomizeBucksScreen(),
         settings: (_) => const SettingsScreen(),
       };
 }

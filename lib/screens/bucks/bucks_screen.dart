@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../../app/routes.dart';
+import '../../providers/app_state_provider.dart';
 
 class BucksScreen extends StatelessWidget {
   const BucksScreen({super.key});
@@ -191,14 +194,14 @@ class _BucksHeader extends StatelessWidget {
                   color: Colors.white.withOpacity(0.10),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.monetization_on, color: _gold, size: 20),
-                    SizedBox(width: 5),
+                    const Icon(Icons.monetization_on, color: _gold, size: 20),
+                    const SizedBox(width: 5),
                     Text(
-                      '250',
-                      style: TextStyle(
+                      '${context.watch<AppStateProvider>().buckPoints}',
+                      style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w800,
                         fontSize: 14,
