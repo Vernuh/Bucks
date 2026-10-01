@@ -32,6 +32,17 @@ class _SavingsScreenState extends State<SavingsScreen> {
   // Sample report data — not wired to real transactions yet.
   static const List<double> _reportValues = [1000, 2000, 2800, 3300, 2488];
 
+  // Sample monthly data for the Savings Progress and Savings vs Expenses
+  // graphs. TODO: replace with real Provider/Supabase data — build a
+  // List<_MonthlyFinance> from transactions and pass it in the same way.
+  static const List<_MonthlyFinance> _monthlyFinance = [
+    _MonthlyFinance(month: 'May', savings: 4000, expenses: 3000),
+    _MonthlyFinance(month: 'Jun', savings: 6500, expenses: 3500),
+    _MonthlyFinance(month: 'Jul', savings: 9000, expenses: 4000),
+    _MonthlyFinance(month: 'Aug', savings: 11500, expenses: 4500),
+    _MonthlyFinance(month: 'Sep', savings: 15000, expenses: 5000),
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -103,6 +114,25 @@ class _SavingsScreenState extends State<SavingsScreen> {
                 child: _ReportsChart(
                   values: _reportValues,
                   blue: _blue,
+                  darkNavy: _darkNavy,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: _SavingsProgressCard(
+                  data: _monthlyFinance,
+                  blue: _blue,
+                  darkNavy: _darkNavy,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: _SavingsVsExpensesCard(
+                  data: _monthlyFinance,
+                  blue: _blue,
+                  yellow: _yellow,
                   darkNavy: _darkNavy,
                 ),
               ),
@@ -581,4 +611,434 @@ class _ReportsChart extends StatelessWidget {
       ],
     );
   }
+}
+
+/// One month of sample finance data. Swap the sample list in
+/// [_SavingsScreenState._monthlyFinance] for real data later.
+class _MonthlyFinance {
+  final String month;
+  final double savings;
+  final double expenses;
+
+  const _MonthlyFinance({
+    required this.month,
+    required this.savings,
+    required this.expenses,
+  });
+}
+
+const Color _chartGrid = Color(0xFFE6E1D3);
+const Color _chartCardBg = Color(0xFFFFFBF2);
+const Color _expenseGreen = Color(0xFF2ECC71);
+
+/// Formats a value compactly with the peso sign, e.g. 6500 -> "₱6.5k".
+String _pesoK(double v) {
+  final k = v / 1000;
+  final text = k == k.roundToDouble()
+      ? k.toStringAsFixed(0)
+      : k.toStringAsFixed(1);
+  return '\u20b1${text}k';
+}
+
+/// Full peso format with thousands separators, e.g. 15000 -> "₱15,000".
+String _pesoFull(double v) {
+  final digits = v.round().toString();
+  final buf = StringBuffer();
+  for (var i = 0; i < digits.length; i++) {
+    if (i > 0 && (digits.length - i) % 3 == 0) buf.write(',');
+    buf.write(digits[i]);
+  }
+  return '\u20b1$buf';
+}
+
+/// Rounds [maxValue] up to a tidy axis top (multiple of 4 steps of 1k+).
+double _niceMax(double maxValue) {
+  const step = 4000.0;
+  return ((maxValue / step).ceil().clamp(1, 1000)) * step;
+}
+
+void _paintText(
+  Canvas canvas,
+  String text,
+  Offset anchor, {
+  required Color color,
+  double fontSize = 10,
+  FontWeight weight = FontWeight.normal,
+  // alignX: 0 = anchor is left edge, 0.5 = centered, 1 = right edge.
+  double alignX = 0.5,
+  // alignY: 0 = anchor is top edge, 0.5 = centered, 1 = bottom edge.
+  double alignY = 0.5,
+}) {
+  final tp = TextPainter(
+    text: TextSpan(
+      text: text,
+      style: TextStyle(color: color, fontSize: fontSize, fontWeight: weight),
+    ),
+    textDirection: TextDirection.ltr,
+    maxLines: 1,
+  )..layout();
+  tp.paint(
+    canvas,
+    Offset(anchor.dx - tp.width * alignX, anchor.dy - tp.height * alignY),
+  );
+}
+
+/// Shared rounded card with title + description around a chart.
+class _ChartCard extends StatelessWidget {
+  final String title;
+  final String description;
+  final Color darkNavy;
+  final Widget child;
+  final Widget? legend;
+
+  const _ChartCard({
+    required this.title,
+    required this.description,
+    required this.darkNavy,
+    required this.child,
+    this.legend,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+      decoration: BoxDecoration(
+        color: _chartCardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _chartGrid),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: darkNavy,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            description,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: darkNavy.withAlpha(180),
+            ),
+          ),
+          if (legend != null) ...[const SizedBox(height: 10), legend!],
+          const SizedBox(height: 12),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+/// Graph 2: line chart of savings over time.
+class _SavingsProgressCard extends StatelessWidget {
+  final List<_MonthlyFinance> data;
+  final Color blue;
+  final Color darkNavy;
+
+  const _SavingsProgressCard({
+    required this.data,
+    required this.blue,
+    required this.darkNavy,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return _ChartCard(
+      title: 'Savings Progress',
+      description: 'Track how your savings grow over time.',
+      darkNavy: darkNavy,
+      child: SizedBox(
+        width: double.infinity,
+        height: 170,
+        child: CustomPaint(
+          painter: _SavingsLinePainter(
+            data: data,
+            blue: blue,
+            darkNavy: darkNavy,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SavingsLinePainter extends CustomPainter {
+  final List<_MonthlyFinance> data;
+  final Color blue;
+  final Color darkNavy;
+
+  _SavingsLinePainter({
+    required this.data,
+    required this.blue,
+    required this.darkNavy,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (data.isEmpty) return;
+
+    const leftPad = 40.0;
+    const rightPad = 14.0;
+    const topPad = 14.0;
+    const bottomPad = 22.0;
+
+    final plot = Rect.fromLTRB(
+      leftPad,
+      topPad,
+      size.width - rightPad,
+      size.height - bottomPad,
+    );
+    final maxValue = _niceMax(
+      data.map((d) => d.savings).reduce((a, b) => a > b ? a : b),
+    );
+
+    final gridPaint = Paint()
+      ..color = _chartGrid
+      ..strokeWidth = 1;
+
+    // Horizontal grid lines + y-axis labels (0 .. max in 4 steps).
+    for (var i = 0; i <= 4; i++) {
+      final y = plot.bottom - plot.height * i / 4;
+      canvas.drawLine(Offset(plot.left, y), Offset(plot.right, y), gridPaint);
+      _paintText(
+        canvas,
+        _pesoK(maxValue * i / 4),
+        Offset(plot.left - 6, y),
+        color: blue,
+        fontSize: 10,
+        alignX: 1,
+      );
+    }
+
+    // Point positions (inset half a slot so end points aren't clipped).
+    final slot = plot.width / data.length;
+    final points = <Offset>[
+      for (var i = 0; i < data.length; i++)
+        Offset(
+          plot.left + slot * (i + 0.5),
+          plot.bottom - plot.height * (data[i].savings / maxValue),
+        ),
+    ];
+
+    // Soft fill under the line.
+    final fill = Path()..moveTo(points.first.dx, plot.bottom);
+    for (final p in points) {
+      fill.lineTo(p.dx, p.dy);
+    }
+    fill
+      ..lineTo(points.last.dx, plot.bottom)
+      ..close();
+    canvas.drawPath(fill, Paint()..color = blue.withAlpha(26));
+
+    // The line.
+    final line = Path()..moveTo(points.first.dx, points.first.dy);
+    for (final p in points.skip(1)) {
+      line.lineTo(p.dx, p.dy);
+    }
+    canvas.drawPath(
+      line,
+      Paint()
+        ..color = blue
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
+    );
+
+    // Visible points + month labels.
+    for (var i = 0; i < points.length; i++) {
+      canvas.drawCircle(points[i], 5.5, Paint()..color = Colors.white);
+      canvas.drawCircle(points[i], 4, Paint()..color = blue);
+      _paintText(
+        canvas,
+        data[i].month,
+        Offset(points[i].dx, plot.bottom + 6),
+        color: darkNavy,
+        fontSize: 10,
+        alignY: 0,
+      );
+    }
+
+    // Value label on the latest point only, keeping the chart uncluttered.
+    final last = points.last;
+    _paintText(
+      canvas,
+      _pesoFull(data.last.savings),
+      Offset(last.dx + 4, last.dy - 9),
+      color: darkNavy,
+      fontSize: 10,
+      weight: FontWeight.bold,
+      alignX: 1,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _SavingsLinePainter old) =>
+      old.data != data || old.blue != blue || old.darkNavy != darkNavy;
+}
+
+/// Graph 3: grouped bars (savings vs expenses) per month.
+class _SavingsVsExpensesCard extends StatelessWidget {
+  final List<_MonthlyFinance> data;
+  final Color blue;
+  final Color yellow;
+  final Color darkNavy;
+
+  const _SavingsVsExpensesCard({
+    required this.data,
+    required this.blue,
+    required this.yellow,
+    required this.darkNavy,
+  });
+
+  Widget _legendItem(String label, Color color) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(3),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(label, style: TextStyle(color: darkNavy, fontSize: 12)),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _ChartCard(
+      title: 'Savings vs Expenses',
+      description: 'See how much you save compared with what you spend.',
+      darkNavy: darkNavy,
+      legend: Wrap(
+        spacing: 16,
+        runSpacing: 4,
+        children: [
+          _legendItem('Savings', blue),
+          _legendItem('Expenses', _expenseGreen),
+        ],
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        height: 190,
+        child: CustomPaint(
+          painter: _GroupedBarPainter(
+            data: data,
+            savingsColor: blue,
+            expensesColor: _expenseGreen,
+            labelColor: darkNavy,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GroupedBarPainter extends CustomPainter {
+  final List<_MonthlyFinance> data;
+  final Color savingsColor;
+  final Color expensesColor;
+  final Color labelColor;
+
+  _GroupedBarPainter({
+    required this.data,
+    required this.savingsColor,
+    required this.expensesColor,
+    required this.labelColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (data.isEmpty) return;
+
+    const leftPad = 40.0;
+    const rightPad = 6.0;
+    const topPad = 16.0;
+    const bottomPad = 22.0;
+
+    final plot = Rect.fromLTRB(
+      leftPad,
+      topPad,
+      size.width - rightPad,
+      size.height - bottomPad,
+    );
+    final maxValue = _niceMax(
+      data
+          .map((d) => d.savings > d.expenses ? d.savings : d.expenses)
+          .reduce((a, b) => a > b ? a : b),
+    );
+
+    final gridPaint = Paint()
+      ..color = _chartGrid
+      ..strokeWidth = 1;
+
+    for (var i = 0; i <= 4; i++) {
+      final y = plot.bottom - plot.height * i / 4;
+      canvas.drawLine(Offset(plot.left, y), Offset(plot.right, y), gridPaint);
+      _paintText(
+        canvas,
+        _pesoK(maxValue * i / 4),
+        Offset(plot.left - 6, y),
+        color: savingsColor,
+        fontSize: 10,
+        alignX: 1,
+      );
+    }
+
+    final slot = plot.width / data.length;
+    // Bars scale with the slot width so they always fit small screens.
+    final barWidth = (slot * 0.34).clamp(8.0, 24.0);
+    const barGap = 2.0;
+
+    void drawBar(double centerX, double value, Color color) {
+      final h = plot.height * (value / maxValue);
+      final rect = RRect.fromRectAndCorners(
+        Rect.fromLTWH(centerX - barWidth / 2, plot.bottom - h, barWidth, h),
+        topLeft: const Radius.circular(4),
+        topRight: const Radius.circular(4),
+      );
+      canvas.drawRRect(rect, Paint()..color = color);
+      _paintText(
+        canvas,
+        _pesoK(value),
+        Offset(centerX, plot.bottom - h - 2),
+        color: labelColor,
+        fontSize: 8,
+        weight: FontWeight.w600,
+        alignY: 1,
+      );
+    }
+
+    for (var i = 0; i < data.length; i++) {
+      final cx = plot.left + slot * (i + 0.5);
+      final offset = (barWidth + barGap) / 2;
+      drawBar(cx - offset, data[i].savings, savingsColor);
+      drawBar(cx + offset, data[i].expenses, expensesColor);
+      _paintText(
+        canvas,
+        data[i].month,
+        Offset(cx, plot.bottom + 6),
+        color: labelColor,
+        fontSize: 10,
+        alignY: 0,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _GroupedBarPainter old) =>
+      old.data != data ||
+      old.savingsColor != savingsColor ||
+      old.expensesColor != expensesColor ||
+      old.labelColor != labelColor;
 }
