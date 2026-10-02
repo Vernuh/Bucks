@@ -10,6 +10,8 @@ import '../screens/missions/missions_screen.dart';
 import '../screens/bucksboard/bucksboard_screen.dart';
 import '../screens/profile/settings_screen.dart';
 import '../screens/customize-bucks/customize_bucks_screen.dart';
+import '../screens/achievements/achievements_screen.dart';
+import '../screens/chat/chat_screen.dart';
 
 
 /// All named routes for BUCKS live here. Keeping them as constants
@@ -47,6 +49,8 @@ class Routes {
         missions: (_) => const MissionsScreen(),
         bucksboard: (_) => const BucksboardScreen(),
         customizeBucks: (_) => const CustomizeBucksScreen(),
+        achievements: (_) => const AchievementsScreen(),
+        chat: (_) => const ChatScreen(),
         settings: (_) => const SettingsScreen(),
       };
 }

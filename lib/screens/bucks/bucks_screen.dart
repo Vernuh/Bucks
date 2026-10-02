@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../app/routes.dart';
+import '../../models/achievement.dart';
 import '../../providers/app_state_provider.dart';
 
 class BucksScreen extends StatelessWidget {
@@ -14,6 +15,9 @@ class BucksScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final app = context.watch<AppStateProvider>();
+    final equipped = app.equippedItems;
+
     return Scaffold(
       backgroundColor: _blue,
       body: SafeArea(
@@ -27,11 +31,23 @@ class BucksScreen extends StatelessWidget {
               // BUCKS CHARACTER
               const _BucksCharacter(),
 
+              // EQUIPPED CUSTOMIZATION (same state Customize Bucks edits)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                child: Text(
+                  equipped.isEmpty
+                      ? 'Equipped: nothing yet'
+                      : 'Equipped: ${equipped.map((i) => i.name).join(', ')}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                ),
+              ),
+
               // BUCKS MESSAGE
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
                 child: _BucksMessage(
-                  text: "Bawk! Let's keep those finances cluckin'!",
+                  text: app.bucksMessage,
                 ),
               ),
 
@@ -140,6 +156,8 @@ class _BucksHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final app = context.watch<AppStateProvider>();
+
     return Container(
       width: double.infinity,
       color: _darkNavy,
@@ -162,21 +180,21 @@ class _BucksHeader extends StatelessWidget {
               const SizedBox(width: 12),
 
               // Level
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'LEVEL 17',
-                      style: TextStyle(
+                      'LEVEL ${app.level}',
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.5,
                       ),
                     ),
-                    SizedBox(height: 3),
-                    Text(
+                    const SizedBox(height: 3),
+                    const Text(
                       'Keep going!',
                       style: TextStyle(color: Colors.white70, fontSize: 12),
                     ),
@@ -200,7 +218,7 @@ class _BucksHeader extends StatelessWidget {
                     const Icon(Icons.monetization_on, color: _gold, size: 20),
                     const SizedBox(width: 5),
                     Text(
-                      '${context.watch<AppStateProvider>().buckPoints}',
+                      '${app.buckCoins}',
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w800,
@@ -228,7 +246,7 @@ class _BucksHeader extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                '600 / 1000',
+                '${app.xp} / ${app.xpForNextLevel}',
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.75),
                   fontSize: 11,
@@ -242,11 +260,11 @@ class _BucksHeader extends StatelessWidget {
           // XP bar
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
-            child: const LinearProgressIndicator(
-              value: 0.60,
+            child: LinearProgressIndicator(
+              value: app.levelProgress,
               minHeight: 5,
               backgroundColor: Colors.white,
-              valueColor: AlwaysStoppedAnimation<Color>(_gold),
+              valueColor: const AlwaysStoppedAnimation<Color>(_gold),
             ),
           ),
         ],
@@ -404,6 +422,11 @@ class _AchievementsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final app = context.watch<AppStateProvider>();
+    bool unlocked(String id) => app.isAchievementUnlocked(id);
+    IconData iconOf(String id) =>
+        AchievementCatalog.byId(id)?.icon ?? Icons.star;
+
     return _CardShell(
       onTap: onTap,
       child: Padding(
@@ -441,13 +464,26 @@ class _AchievementsCard extends StatelessWidget {
 
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                _AchievementIcon(icon: Icons.savings, label: 'Saver'),
-                _AchievementIcon(icon: Icons.track_changes, label: 'Tracker'),
-                _AchievementIcon(icon: Icons.star, label: 'Star'),
+              children: [
                 _AchievementIcon(
-                  icon: Icons.local_fire_department,
+                  icon: iconOf('savings_starter'),
+                  label: 'Saver',
+                  unlocked: unlocked('savings_starter'),
+                ),
+                _AchievementIcon(
+                  icon: iconOf('first_transaction'),
+                  label: 'Tracker',
+                  unlocked: unlocked('first_transaction'),
+                ),
+                _AchievementIcon(
+                  icon: iconOf('budget_beginner'),
+                  label: 'Star',
+                  unlocked: unlocked('budget_beginner'),
+                ),
+                _AchievementIcon(
+                  icon: iconOf('streak_7'),
                   label: 'Streak',
+                  unlocked: unlocked('streak_7'),
                 ),
               ],
             ),
@@ -462,8 +498,13 @@ class _AchievementsCard extends StatelessWidget {
 class _AchievementIcon extends StatelessWidget {
   final IconData icon;
   final String label;
+  final bool unlocked;
 
-  const _AchievementIcon({required this.icon, required this.label});
+  const _AchievementIcon({
+    required this.icon,
+    required this.label,
+    required this.unlocked,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -473,10 +514,14 @@ class _AchievementIcon extends StatelessWidget {
           width: 45,
           height: 45,
           decoration: BoxDecoration(
-            color: const Color(0xFFFFF4CE),
+            color: unlocked ? const Color(0xFFFFF4CE) : Colors.grey.shade200,
             borderRadius: BorderRadius.circular(13),
           ),
-          child: Icon(icon, color: const Color(0xFFFFB020), size: 23),
+          child: Icon(
+            icon,
+            color: unlocked ? const Color(0xFFFFB020) : Colors.grey,
+            size: 23,
+          ),
         ),
         const SizedBox(height: 5),
         Text(

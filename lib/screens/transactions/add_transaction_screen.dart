@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../models/categories.dart';
+import '../../models/transaction.dart';
+import '../../providers/app_state_provider.dart';
 import '../../theme/app_theme.dart';
 
 /// UI-only entry type for this screen's toggle. This is separate from
@@ -10,11 +15,9 @@ enum _EntryType { income, expense, savings }
 /// The "Add" bottom-nav tab: lets the user log an income/expense entry
 /// or contribute to a savings goal.
 ///
-/// NOTE: Save doesn't persist anywhere yet — there's no StorageService
-/// or provider wired up for transactions/goals yet. It validates the
-/// form and confirms via a snackbar so you can see the flow works.
-/// Wiring this into real state (so it shows up in Transactions history
-/// and updates Home's balance) is the next step.
+/// Save hands the entry to [AppStateProvider], which stores it, updates
+/// budgets / goals / missions / achievements, and persists everything.
+/// This screen only collects input and shows the result.
 class AddTransactionScreen extends StatefulWidget {
   const AddTransactionScreen({super.key});
 
@@ -25,28 +28,15 @@ class AddTransactionScreen extends StatefulWidget {
 class _AddTransactionScreenState extends State<AddTransactionScreen> {
   _EntryType _type = _EntryType.expense;
   String? _selectedCategory;
+  String? _selectedGoalId;
 
   final _amountController = TextEditingController();
   final _notesController = TextEditingController();
 
-  // Matches the categories from the project spec. If these end up
-  // needed elsewhere (e.g. editing a transaction later), we'll pull
-  // them into a shared constants file — not worth it for one screen yet.
-  static const _incomeCategories = ['Allowance', 'Salary', 'Freelance', 'Gift', 'Other'];
-  static const _expenseCategories = [
-    'Food',
-    'Transportation',
-    'School',
-    'Entertainment',
-    'Shopping',
-    'Bills',
-    'Other',
-  ];
-
   List<String> get _categoriesForType {
     return switch (_type) {
-      _EntryType.income => _incomeCategories,
-      _EntryType.expense => _expenseCategories,
+      _EntryType.income => Categories.income,
+      _EntryType.expense => Categories.expense,
       _EntryType.savings => const [],
     };
   }
@@ -62,12 +52,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     setState(() {
       _type = type;
       _selectedCategory = null; // reset category when switching type
+      _selectedGoalId = null;
     });
   }
 
   void _save() {
-    final amountText = _amountController.text.trim();
-    final amount = double.tryParse(amountText);
+    final amount = double.tryParse(_amountController.text.trim());
 
     if (amount == null || amount <= 0) {
       _showMessage('Enter a valid amount.');
@@ -77,19 +67,33 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       _showMessage('Pick a category.');
       return;
     }
+    if (_type == _EntryType.savings && _selectedGoalId == null) {
+      _showMessage('Pick a savings goal.');
+      return;
+    }
 
-    final label = switch (_type) {
-      _EntryType.income => 'Income',
-      _EntryType.expense => 'Expense',
-      _EntryType.savings => 'Savings contribution',
+    final txType = switch (_type) {
+      _EntryType.income => TransactionType.income,
+      _EntryType.expense => TransactionType.expense,
+      _EntryType.savings => TransactionType.savings,
     };
-    final categorySuffix = _selectedCategory != null ? ' ($_selectedCategory)' : '';
-    _showMessage('$label saved: ₱$amountText$categorySuffix');
+
+    final result = context.read<AppStateProvider>().addTransaction(
+          type: txType,
+          amount: amount,
+          category: _selectedCategory,
+          goalId: _selectedGoalId,
+          note: _notesController.text,
+        );
+
+    _showMessage(result.message);
+    if (!result.success) return;
 
     setState(() {
       _amountController.clear();
       _notesController.clear();
       _selectedCategory = null;
+      _selectedGoalId = null;
     });
   }
 
@@ -101,6 +105,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final goals = context.watch<AppStateProvider>().goals;
+    // If the selected goal vanished (e.g. data reset), clear the selection.
+    if (_selectedGoalId != null && !goals.any((g) => g.id == _selectedGoalId)) {
+      _selectedGoalId = null;
+    }
+
     return Scaffold(
       appBar: AppBar(title: const Text('Add')),
       body: SafeArea(
@@ -125,16 +135,35 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               if (_type == _EntryType.savings) ...[
                 Text('Savings Goal', style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(12),
+                if (goals.isEmpty)
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'No savings goals yet. Create one in the Goals tab first.',
+                    ),
+                  )
+                else
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: goals.map((goal) {
+                      final isSelected = goal.id == _selectedGoalId;
+                      return ChoiceChip(
+                        label: Text(goal.name),
+                        selected: isSelected,
+                        onSelected: (_) =>
+                            setState(() => _selectedGoalId = goal.id),
+                        selectedColor: AppTheme.primary,
+                        labelStyle: TextStyle(
+                          color: isSelected ? Colors.white : AppTheme.textDark,
+                        ),
+                      );
+                    }).toList(),
                   ),
-                  child: const Text(
-                    'Goal picker will appear here once Savings Goals are wired up.',
-                  ),
-                ),
               ] else ...[
                 Text('Category', style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),

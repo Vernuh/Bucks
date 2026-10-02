@@ -3,16 +3,14 @@ import 'package:provider/provider.dart';
 
 import '../../app/routes.dart';
 import '../../providers/app_state_provider.dart';
+import '../../utils/formatters.dart';
 
 /// The Profile ("Account") tab: header, Bucks + profile picture row,
 /// a dark summary card, a "View history" button, and Settings/Sign Out
 /// buttons.
 ///
-/// Most of this is sample data for now — AppStateProvider only has
-/// `username` and `buckPoints`, not level/savings/expenses, so those
-/// stay hardcoded until real storage exists. `username` IS reused here
-/// (via context.watch) since it's already a real field, unlike the
-/// others.
+/// Every value (level, XP, Bucks Coins, streak, total savings, total
+/// expenses, username) is read from [AppStateProvider].
 ///
 /// Bucks' character reuses the same Icons.emoji_nature placeholder the
 /// Home and Bucks tabs already use, for visual consistency, without
@@ -28,12 +26,6 @@ class ProfileScreen extends StatelessWidget {
   static const _green = Color(0xFF218B0D);
   static const _gray = Color(0xFF777777);
 
-  // Sample data — level/savings/expenses aren't tracked in
-  // AppStateProvider yet.
-  static const String _summaryLevel = 'Level 00';
-  static const String _totalSavings = 'Php 99999';
-  static const String _totalExpenses = 'Php 99999';
-
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppStateProvider>();
@@ -46,7 +38,12 @@ class ProfileScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const _ProfileHeader(blue: _blue, yellow: _yellow),
+              _ProfileHeader(
+                blue: _blue,
+                yellow: _yellow,
+                level: appState.level,
+                progress: appState.levelProgress,
+              ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
                 child: _ProfileCharacterRow(
@@ -60,9 +57,12 @@ class ProfileScreen extends StatelessWidget {
                 child: _ProfileSummaryCard(
                   cardColor: _darkBlueCard,
                   yellow: _yellow,
-                  level: _summaryLevel,
-                  savings: _totalSavings,
-                  expenses: _totalExpenses,
+                  level: 'Level ${appState.level}',
+                  bucks: '${appState.buckCoins}',
+                  xp: '${appState.xp}',
+                  streak: '${appState.currentStreak} days',
+                  savings: 'Php ${formatNumber(appState.totalSaved)}',
+                  expenses: 'Php ${formatNumber(appState.totalExpenses)}',
                 ),
               ),
               Padding(
@@ -132,15 +132,20 @@ class ProfileScreen extends StatelessWidget {
   }
 }
 
-/// Bright blue header: "BUCKS" (gold, left), "Level 17" (white, right),
-/// thin yellow progress bar along the bottom. Matches the style used
-/// on the Home and Bucks tabs, rebuilt locally here since there's no
-/// shared header widget to import without creating a new file.
+/// Bright blue header: "BUCKS" (gold, left), the real level (white,
+/// right), thin yellow XP progress bar along the bottom.
 class _ProfileHeader extends StatelessWidget {
   final Color blue;
   final Color yellow;
+  final int level;
+  final double progress;
 
-  const _ProfileHeader({required this.blue, required this.yellow});
+  const _ProfileHeader({
+    required this.blue,
+    required this.yellow,
+    required this.level,
+    required this.progress,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -164,7 +169,7 @@ class _ProfileHeader extends StatelessWidget {
                 ),
               ),
               Text(
-                'Level 17',
+                'Level $level',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -176,7 +181,7 @@ class _ProfileHeader extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
             child: LinearProgressIndicator(
-              value: 0.6, // placeholder — no real XP/level data yet
+              value: progress,
               minHeight: 4,
               backgroundColor: Colors.white24,
               valueColor: AlwaysStoppedAnimation<Color>(yellow),
@@ -260,12 +265,15 @@ class _ProfileCharacterRow extends StatelessWidget {
   }
 }
 
-/// Dark blue rounded card showing Current Level / Total Savings /
-/// Total Expenses — labels in gold, values in white.
+/// Dark blue rounded card showing level, Bucks Coins, XP, streak,
+/// savings and expenses — labels in gold, values in white.
 class _ProfileSummaryCard extends StatelessWidget {
   final Color cardColor;
   final Color yellow;
   final String level;
+  final String bucks;
+  final String xp;
+  final String streak;
   final String savings;
   final String expenses;
 
@@ -273,6 +281,9 @@ class _ProfileSummaryCard extends StatelessWidget {
     required this.cardColor,
     required this.yellow,
     required this.level,
+    required this.bucks,
+    required this.xp,
+    required this.streak,
     required this.savings,
     required this.expenses,
   });
@@ -288,6 +299,12 @@ class _ProfileSummaryCard extends StatelessWidget {
       child: Column(
         children: [
           _SummaryRow(label: 'Current Level', value: level, yellow: yellow),
+          const SizedBox(height: 14),
+          _SummaryRow(label: 'Bucks Coins', value: bucks, yellow: yellow),
+          const SizedBox(height: 14),
+          _SummaryRow(label: 'XP', value: xp, yellow: yellow),
+          const SizedBox(height: 14),
+          _SummaryRow(label: 'Current Streak', value: streak, yellow: yellow),
           const SizedBox(height: 14),
           _SummaryRow(label: 'Total Savings', value: savings, yellow: yellow),
           const SizedBox(height: 14),

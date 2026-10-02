@@ -4,18 +4,20 @@ import 'package:provider/provider.dart';
 import 'app/app.dart';
 import 'providers/app_state_provider.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Restore saved data BEFORE the first frame so no screen ever flashes
+  // empty/default values and nothing is reset on startup.
+  final appState = AppStateProvider();
+  await appState.load();
+
   runApp(
-    // MultiProvider lets us register multiple providers at the top of
-    // the widget tree. We only have one right now (AppStateProvider),
-    // but this is where TransactionProvider, BudgetProvider, etc. will
-    // be added as we build those features.
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AppStateProvider()),
+        ChangeNotifierProvider<AppStateProvider>.value(value: appState),
       ],
       child: const BucksApp(),
     ),
   );
 }
-

@@ -2,17 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../app/routes.dart';
+import '../../models/mission.dart';
+import '../../models/upcoming_item.dart';
 import '../../providers/app_state_provider.dart';
+import '../../utils/formatters.dart';
 
 /// The Home dashboard tab: blue header, Bucks + today's budget message,
 /// balance/spent cards, Daily Missions, and Upcoming items.
 ///
-/// This replaces the old placeholder (AppBar + "Go to:" grid). None of
-/// this data is wired to real storage yet — balance, spent, missions,
-/// and upcoming items are all local sample data for now, per the
-/// project's "use sample data until a backend exists" rule. The one
-/// piece of real data available is the username from [AppStateProvider],
-/// used in the greeting message.
+/// Every number here comes from [AppStateProvider]: balance and spent
+/// today are derived from the shared transactions, missions/level/XP from
+/// the shared progress state, and upcoming items from the shared list.
 ///
 /// Note on Bucks' character: we're not embedding the [BucksCompanion]
 /// widget directly here, since its Row + speech-bubble-card layout
@@ -38,60 +38,144 @@ class _HomeScreenState extends State<HomeScreen> {
   static const _expenseRed = Color(0xFFF44336);
   static const _incomeGreen = Color(0xFF168B2D);
 
-  // Sample data — will be replaced once budgets/missions/upcoming are
-  // wired to real storage.
-  static const int _todaysBalance = 200;
-  static const int _spentToday = 150;
-  static const int _budgetRemaining = 200;
+  void _toast(BuildContext context, String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
 
-  final List<_MissionData> _missions = const [
-    _MissionData(
-      title: 'Log an Expense',
-      description: 'Record 1 expense today.',
-      coinReward: 10,
-      xpReward: 20,
-    ),
-    _MissionData(
-      title: 'Stay on Budget',
-      description: "Don't exceed your budget today.",
-      coinReward: 15,
-      xpReward: 30,
-    ),
-    _MissionData(
-      title: 'Save Money',
-      description: 'Add any amount to a savings goal.',
-      coinReward: 15,
-      xpReward: 35,
-    ),
-  ];
+  /// Tapping an upcoming item: record it as a real transaction, or remove.
+  Future<void> _onUpcomingTap(BuildContext context, UpcomingItem item) async {
+    final app = context.read<AppStateProvider>();
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(item.name),
+        content: Text(
+          '${item.isExpense ? 'Expense' : 'Income'} of '
+          '${formatPeso(item.amount)} on ${formatDate(item.date)}.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, 'remove'),
+            child: const Text('Remove'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Close'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, 'done'),
+            child: Text(item.isExpense ? 'Mark as paid' : 'Mark as received'),
+          ),
+        ],
+      ),
+    );
+    if (!context.mounted) return;
+    if (choice == 'remove') {
+      _toast(context, app.removeUpcoming(item.id).message);
+    } else if (choice == 'done') {
+      _toast(context, app.completeUpcoming(item.id).message);
+    }
+  }
 
-  // Tracks which missions are checked. Purely local/visual for now —
-  // not persisted anywhere.
-  late final List<bool> _missionCompleted = List<bool>.filled(
-    _missions.length,
-    false,
-  );
+  Future<void> _openAddUpcomingDialog(BuildContext context) async {
+    final app = context.read<AppStateProvider>();
+    final nameController = TextEditingController();
+    final amountController = TextEditingController();
+    var isExpense = true;
+    var date = DateTime.now();
+    String? error;
 
-  static const List<_UpcomingItemData> _upcoming = [
-    _UpcomingItemData(
-      name: 'Weekly Allowance',
-      date: 'August 10',
-      amount: 5000,
-      isExpense: false,
-    ),
-    _UpcomingItemData(
-      name: 'Mobile Load',
-      date: 'August 11',
-      amount: 300,
-      isExpense: false,
-    ),
-    _UpcomingItemData(
-      name: 'Netflix Subscription',
-      date: 'August 15',
-      amount: 249,
-      isExpense: true,
-    ),
-  ];
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Add Upcoming'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    ChoiceChip(
+                      label: const Text('Expense'),
+                      selected: isExpense,
+                      onSelected: (_) => setDialogState(() => isExpense = true),
+                    ),
+                    ChoiceChip(
+                      label: const Text('Income'),
+                      selected: !isExpense,
+                      onSelected: (_) =>
+                          setDialogState(() => isExpense = false),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'Name'),
+                ),
+                TextField(
+                  controller: amountController,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'Amount',
+                    prefixText: '\u20b1 ',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  icon: const Icon(Icons.calendar_today, size: 16),
+                  label: Text(formatDate(date)),
+                  onPressed: () async {
+                    final picked = await showDatePicker(
+                      context: dialogContext,
+                      initialDate: date,
+                      firstDate: DateTime.now().subtract(
+                        const Duration(days: 365),
+                      ),
+                      lastDate: DateTime.now().add(const Duration(days: 3650)),
+                    );
+                    if (picked != null) setDialogState(() => date = picked);
+                  },
+                ),
+                if (error != null)
+                  Text(error!, style: const TextStyle(color: Colors.red)),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                final result = app.addUpcoming(
+                  name: nameController.text,
+                  amount: double.tryParse(amountController.text.trim()) ?? 0,
+                  isExpense: isExpense,
+                  date: date,
+                );
+                if (!result.success) {
+                  setDialogState(() => error = result.message);
+                  return;
+                }
+                Navigator.pop(dialogContext);
+              },
+              child: const Text('Add'),
+            ),
+          ],
+        ),
+      ),
+    );
+    nameController.dispose();
+    amountController.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -105,12 +189,16 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const _HomeHeader(blue: _blue, yellow: _yellow),
+              _HomeHeader(
+                blue: _blue,
+                yellow: _yellow,
+                level: appState.level,
+                progress: appState.levelProgress,
+              ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                 child: _BucksDashboardSection(
-                  username: appState.username,
-                  budgetRemaining: _budgetRemaining,
+                  message: appState.bucksMessage,
                   darkText: _darkText,
                 ),
               ),
@@ -135,7 +223,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Navigator.pushNamed(context, Routes.transactions),
                   child: _BalanceCard(
                     label: "Today's Balance",
-                    amount: _todaysBalance,
+                    amount: appState.availableBalance,
                     blue: _blue,
                     yellow: _yellow,
                   ),
@@ -149,7 +237,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Navigator.pushNamed(context, Routes.transactions),
                   child: _BalanceCard(
                     label: 'Spent Today',
-                    amount: _spentToday,
+                    amount: appState.spentToday,
                     blue: _blue,
                     yellow: _yellow,
                   ),
@@ -157,45 +245,32 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 20),
               _DailyMissionsSection(
-                missions: _missions,
-                completed: _missionCompleted,
+                missions: appState.missions,
                 yellow: _yellow,
                 blue: _blue,
                 darkText: _darkText,
                 gray: _gray,
                 onHeaderTap: () =>
                     Navigator.pushNamed(context, Routes.missions),
-                onToggle: (index) {
-                  setState(
-                    () => _missionCompleted[index] = !_missionCompleted[index],
-                  );
-                },
               ),
               const SizedBox(height: 16),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: _UpcomingSection(
-                  items: _upcoming,
+                  items: appState.upcomingItems,
                   lightYellow: _lightYellow,
                   blue: _blue,
                   gray: _gray,
                   darkText: _darkText,
                   incomeGreen: _incomeGreen,
                   expenseRed: _expenseRed,
+                  onItemTap: (item) => _onUpcomingTap(context, item),
                 ),
               ),
               const SizedBox(height: 16),
               Center(
                 child: ElevatedButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context)
-                      ..hideCurrentSnackBar()
-                      ..showSnackBar(
-                        const SnackBar(
-                          content: Text('Add Upcoming coming soon!'),
-                        ),
-                      );
-                  },
+                  onPressed: () => _openAddUpcomingDialog(context),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _yellow,
                     foregroundColor: _dateGreen,
@@ -254,13 +329,20 @@ String _formatDashboardDate(DateTime date) {
   return '$weekday, $month ${date.day}, ${date.year}';
 }
 
-/// Bright blue header: "BUCKS" logotype on the left, "Level 17" on the
-/// right, with a thin yellow progress bar along the bottom edge.
+/// Bright blue header: "BUCKS" logotype on the left, the real level on the
+/// right, with a thin yellow XP progress bar along the bottom edge.
 class _HomeHeader extends StatelessWidget {
   final Color blue;
   final Color yellow;
+  final int level;
+  final double progress;
 
-  const _HomeHeader({required this.blue, required this.yellow});
+  const _HomeHeader({
+    required this.blue,
+    required this.yellow,
+    required this.level,
+    required this.progress,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -284,7 +366,7 @@ class _HomeHeader extends StatelessWidget {
                 ),
               ),
               Text(
-                'Level 17',
+                'Level $level',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -296,7 +378,7 @@ class _HomeHeader extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
             child: LinearProgressIndicator(
-              value: 0.6, // placeholder — no real XP/level data yet
+              value: progress,
               minHeight: 4,
               backgroundColor: Colors.white24,
               valueColor: AlwaysStoppedAnimation<Color>(yellow),
@@ -311,13 +393,11 @@ class _HomeHeader extends StatelessWidget {
 /// Bucks (left) + today's budget message (right), with a green ground
 /// shadow under the character.
 class _BucksDashboardSection extends StatelessWidget {
-  final String username;
-  final int budgetRemaining;
+  final String message;
   final Color darkText;
 
   const _BucksDashboardSection({
-    required this.username,
-    required this.budgetRemaining,
+    required this.message,
     required this.darkText,
   });
 
@@ -350,8 +430,7 @@ class _BucksDashboardSection extends StatelessWidget {
         const SizedBox(width: 14),
         Expanded(
           child: Text(
-            "Bawk! You're doing great, $username! Only "
-            '\u20b1$budgetRemaining left in today\'s budget.',
+            message,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: darkText,
               fontWeight: FontWeight.w500,
@@ -368,7 +447,7 @@ class _BucksDashboardSection extends StatelessWidget {
 /// right, both in gold.
 class _BalanceCard extends StatelessWidget {
   final String label;
-  final int amount;
+  final double amount;
   final Color blue;
   final Color yellow;
 
@@ -416,7 +495,7 @@ class _BalanceCard extends StatelessWidget {
                 ),
               ),
               Text(
-                '$amount',
+                formatNumber(amount),
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   color: yellow,
                   fontWeight: FontWeight.bold,
@@ -430,43 +509,25 @@ class _BalanceCard extends StatelessWidget {
   }
 }
 
-/// Data for a single daily mission. Local sample data only for now.
-class _MissionData {
-  final String title;
-  final String description;
-  final int coinReward;
-  final int xpReward;
-
-  const _MissionData({
-    required this.title,
-    required this.description,
-    required this.coinReward,
-    required this.xpReward,
-  });
-}
-
-/// Yellow-headed "Daily Missions" section containing three mission
-/// rows. Tapping the header navigates to the full Missions screen;
-/// tapping a mission's checkbox toggles it locally (not persisted).
+/// Yellow-headed "Daily Missions" section containing today's missions.
+/// Tapping the header opens the full Missions screen. Missions complete
+/// automatically when the user does the real action — the checkbox is
+/// display-only so it can't be faked.
 class _DailyMissionsSection extends StatelessWidget {
-  final List<_MissionData> missions;
-  final List<bool> completed;
+  final List<Mission> missions;
   final Color yellow;
   final Color blue;
   final Color darkText;
   final Color gray;
   final VoidCallback onHeaderTap;
-  final ValueChanged<int> onToggle;
 
   const _DailyMissionsSection({
     required this.missions,
-    required this.completed,
     required this.yellow,
     required this.blue,
     required this.darkText,
     required this.gray,
     required this.onHeaderTap,
-    required this.onToggle,
   });
 
   @override
@@ -500,11 +561,10 @@ class _DailyMissionsSection extends StatelessWidget {
                   ),
                   child: _MissionCard(
                     mission: missions[index],
-                    isCompleted: completed[index],
+                    isCompleted: missions[index].isCompleted,
                     blue: blue,
                     darkText: darkText,
                     gray: gray,
-                    onTap: () => onToggle(index),
                   ),
                 );
               }),
@@ -519,12 +579,11 @@ class _DailyMissionsSection extends StatelessWidget {
 /// A single white rounded mission row: checkbox, title + description,
 /// and a blue rewards pill.
 class _MissionCard extends StatelessWidget {
-  final _MissionData mission;
+  final Mission mission;
   final bool isCompleted;
   final Color blue;
   final Color darkText;
   final Color gray;
-  final VoidCallback onTap;
 
   const _MissionCard({
     required this.mission,
@@ -532,7 +591,6 @@ class _MissionCard extends StatelessWidget {
     required this.blue,
     required this.darkText,
     required this.gray,
-    required this.onTap,
   });
 
   @override
@@ -546,20 +604,16 @@ class _MissionCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(6),
-            child: Container(
-              width: 22,
-              height: 22,
-              decoration: BoxDecoration(
-                color: isCompleted ? blue : Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: isCompleted
-                  ? const Icon(Icons.check, size: 16, color: Colors.white)
-                  : null,
+          Container(
+            width: 22,
+            height: 22,
+            decoration: BoxDecoration(
+              color: isCompleted ? blue : Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(6),
             ),
+            child: isCompleted
+                ? const Icon(Icons.check, size: 16, color: Colors.white)
+                : null,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -600,7 +654,7 @@ class _MissionCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 2),
                 Text(
-                  '+${mission.coinReward}',
+                  '+${mission.bucksReward}',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 11,
@@ -627,32 +681,18 @@ class _MissionCard extends StatelessWidget {
   }
 }
 
-/// Data for a single upcoming income/expense item.
-class _UpcomingItemData {
-  final String name;
-  final String date;
-  final int amount;
-  final bool isExpense;
-
-  const _UpcomingItemData({
-    required this.name,
-    required this.date,
-    required this.amount,
-    required this.isExpense,
-  });
-}
-
-/// Pale-yellow "Upcoming" container listing upcoming income/expense
-/// items. Tapping an item shows a snackbar for now — no dedicated
-/// screen exists yet.
+/// Pale-yellow "Upcoming" container listing the user's upcoming
+/// income/expense items. Tapping an item lets them mark it done (which
+/// records a real transaction) or remove it.
 class _UpcomingSection extends StatelessWidget {
-  final List<_UpcomingItemData> items;
+  final List<UpcomingItem> items;
   final Color lightYellow;
   final Color blue;
   final Color gray;
   final Color darkText;
   final Color incomeGreen;
   final Color expenseRed;
+  final ValueChanged<UpcomingItem> onItemTap;
 
   const _UpcomingSection({
     required this.items,
@@ -662,6 +702,7 @@ class _UpcomingSection extends StatelessWidget {
     required this.darkText,
     required this.incomeGreen,
     required this.expenseRed,
+    required this.onItemTap,
   });
 
   @override
@@ -683,6 +724,13 @@ class _UpcomingSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
+          if (items.isEmpty)
+            Text(
+              'Nothing upcoming yet. Tap "Add Upcoming" to plan ahead.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: gray,
+              ),
+            ),
           ...items.map((item) {
             final color = item.isExpense ? expenseRed : incomeGreen;
             final sign = item.isExpense ? '-' : '+';
@@ -690,13 +738,7 @@ class _UpcomingSection extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 8),
               child: InkWell(
                 borderRadius: BorderRadius.circular(12),
-                onTap: () {
-                  ScaffoldMessenger.of(context)
-                    ..hideCurrentSnackBar()
-                    ..showSnackBar(
-                      SnackBar(content: Text('${item.name} — coming soon!')),
-                    );
-                },
+                onTap: () => onItemTap(item),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -722,7 +764,7 @@ class _UpcomingSection extends StatelessWidget {
                                   ),
                             ),
                             Text(
-                              item.date,
+                              formatDate(item.date),
                               style: Theme.of(
                                 context,
                               ).textTheme.bodySmall?.copyWith(color: gray),
@@ -731,7 +773,7 @@ class _UpcomingSection extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        '$sign${item.amount}',
+                        '$sign${formatPeso(item.amount)}',
                         style: TextStyle(
                           color: color,
                           fontWeight: FontWeight.bold,

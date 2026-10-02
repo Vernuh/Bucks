@@ -1,5 +1,9 @@
-/// Represents a spending limit set for a specific category
-/// (e.g. "Food Budget: ₱3,000/month").
+/// A monthly spending limit for one expense category
+/// (e.g. "Food: ₱3,000 / month").
+///
+/// Only [id], [category] and [limit] are persisted. [spent] is DERIVED from
+/// the shared transaction list by AppStateProvider and is never stored, so
+/// Home and the Budget screen can never disagree.
 class Budget {
   final String id;
   final String category;
@@ -10,11 +14,35 @@ class Budget {
     required this.id,
     required this.category,
     required this.limit,
-    required this.spent,
+    this.spent = 0,
   });
 
   double get remaining => limit - spent;
 
   /// Value from 0.0 to 1.0+ representing how much of the budget is used.
-  double get progress => limit == 0 ? 0 : spent / limit;
+  double get progress => limit <= 0 ? 0 : spent / limit;
+
+  bool get isOver => spent > limit;
+
+  /// 80% or more used, but not over yet.
+  bool get isNearLimit => !isOver && progress >= 0.8;
+
+  Budget copyWith({double? limit, double? spent}) => Budget(
+        id: id,
+        category: category,
+        limit: limit ?? this.limit,
+        spent: spent ?? this.spent,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'category': category,
+        'limit': limit,
+      };
+
+  factory Budget.fromJson(Map<String, dynamic> json) => Budget(
+        id: json['id'] as String,
+        category: json['category'] as String,
+        limit: (json['limit'] as num).toDouble(),
+      );
 }

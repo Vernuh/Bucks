@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../../app/routes.dart';
+import '../../models/monthly_summary.dart';
+import '../../models/savings_goal.dart';
+import '../../providers/app_state_provider.dart';
+import '../../utils/formatters.dart';
 
 /// The "Goals" bottom-nav tab.
 ///
@@ -9,42 +15,23 @@ import '../../app/routes.dart';
 /// Bucks message, savings goal card(s), Create Goal, Budget Planner,
 /// and a Reports chart.
 ///
-/// Goal data is local/in-memory (a `List<_GoalData>` in this State) —
-/// there's no AppStateProvider field for goals and no storage backend
-/// yet, so this is sample data until that's wired up.
-class SavingsScreen extends StatefulWidget {
+/// Goals and chart data come from [AppStateProvider]: the goal list is the
+/// shared one (so Add Transaction, Profile and Reports see the same goals)
+/// and the charts are derived from the real transactions.
+class SavingsScreen extends StatelessWidget {
   const SavingsScreen({super.key});
 
-  @override
-  State<SavingsScreen> createState() => _SavingsScreenState();
-}
-
-class _SavingsScreenState extends State<SavingsScreen> {
   static const _blue = Color(0xFF1688F5);
   static const _darkNavy = Color(0xFF17213F);
   static const _yellow = Color(0xFFFFD21F);
   static const _green = Color(0xFF218B0D);
 
-  final List<_GoalData> _goals = [
-    _GoalData(name: 'Laptop', saved: 15000, target: 25000),
-  ];
-
-  // Sample report data — not wired to real transactions yet.
-  static const List<double> _reportValues = [1000, 2000, 2800, 3300, 2488];
-
-  // Sample monthly data for the Savings Progress and Savings vs Expenses
-  // graphs. TODO: replace with real Provider/Supabase data — build a
-  // List<_MonthlyFinance> from transactions and pass it in the same way.
-  static const List<_MonthlyFinance> _monthlyFinance = [
-    _MonthlyFinance(month: 'May', savings: 4000, expenses: 3000),
-    _MonthlyFinance(month: 'Jun', savings: 6500, expenses: 3500),
-    _MonthlyFinance(month: 'Jul', savings: 9000, expenses: 4000),
-    _MonthlyFinance(month: 'Aug', savings: 11500, expenses: 4500),
-    _MonthlyFinance(month: 'Sep', savings: 15000, expenses: 5000),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final app = context.watch<AppStateProvider>();
+    final goals = app.goals;
+    final months = app.monthlySummaries(count: 5);
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -53,16 +40,32 @@ class _SavingsScreenState extends State<SavingsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const _GoalsHeader(blue: _blue, yellow: _yellow),
-              const Padding(
-                padding: EdgeInsets.fromLTRB(20, 20, 20, 0),
-                child: _BucksGoalSection(),
+              _GoalsHeader(
+                blue: _blue,
+                yellow: _yellow,
+                progress: app.levelProgress,
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                child: _BucksGoalSection(message: _goalsMessage(app)),
               ),
               const SizedBox(height: 20),
+              if (goals.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                  child: Text(
+                    'No savings goals yet. Tap Create Goal to start saving '
+                    'for something.',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: _darkNavy,
+                    ),
+                  ),
+                ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
-                  children: _goals
+                  children: goals
                       .map(
                         (goal) => Padding(
                           padding: const EdgeInsets.only(bottom: 12),
@@ -84,7 +87,8 @@ class _SavingsScreenState extends State<SavingsScreen> {
                   child: _CreateGoalButton(
                     yellow: _yellow,
                     darkNavy: _darkNavy,
-                    onCreate: _addGoal,
+                    onCreate: (name, target) =>
+                        _addGoal(context, name, target),
                   ),
                 ),
               ),
@@ -100,42 +104,75 @@ class _SavingsScreenState extends State<SavingsScreen> {
               const SizedBox(height: 20),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Text(
-                  'Reports and Charts',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: _darkNavy,
-                    fontWeight: FontWeight.bold,
+                child: InkWell(
+                  onTap: () => Navigator.pushNamed(context, Routes.reports),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Reports and Charts',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              color: _darkNavy,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                      const Icon(Icons.chevron_right, color: _darkNavy),
+                    ],
                   ),
                 ),
               ),
               const SizedBox(height: 12),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: _ReportsChart(
-                  values: _reportValues,
-                  blue: _blue,
-                  darkNavy: _darkNavy,
+              if (!app.hasTransactions)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    'Add more transactions to see your spending trends.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: _darkNavy,
+                    ),
+                  ),
+                )
+              else ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: _ReportsChart(
+                    values: months.map((m) => m.expenses).toList(),
+                    blue: _blue,
+                    darkNavy: _darkNavy,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: _SavingsProgressCard(
-                  data: _monthlyFinance,
-                  blue: _blue,
-                  darkNavy: _darkNavy,
+                const SizedBox(height: 4),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    'Monthly spending \u2022 ${months.first.month}'
+                    '\u2013${months.last.month}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: _darkNavy.withAlpha(180),
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: _SavingsVsExpensesCard(
-                  data: _monthlyFinance,
-                  blue: _blue,
-                  yellow: _yellow,
-                  darkNavy: _darkNavy,
+                const SizedBox(height: 24),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: _SavingsProgressCard(
+                    data: months,
+                    blue: _blue,
+                    darkNavy: _darkNavy,
+                  ),
                 ),
-              ),
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: _SavingsVsExpensesCard(
+                    data: months,
+                    blue: _blue,
+                    yellow: _yellow,
+                    darkNavy: _darkNavy,
+                  ),
+                ),
+              ],
               const SizedBox(height: 24),
             ],
           ),
@@ -144,23 +181,30 @@ class _SavingsScreenState extends State<SavingsScreen> {
     );
   }
 
-  void _addGoal(String name, double target) {
-    setState(() {
-      _goals.add(_GoalData(name: name, saved: 0, target: target));
-    });
+  void _addGoal(BuildContext context, String name, double target) {
+    final result = context.read<AppStateProvider>().addGoal(
+          name: name,
+          target: target,
+        );
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(result.message)));
   }
-}
 
-/// Data for a single savings goal. `progress` is always calculated
-/// (saved / target, clamped 0.0–1.0) rather than stored directly.
-class _GoalData {
-  final String name;
-  final double saved;
-  final double target;
-
-  _GoalData({required this.name, required this.saved, required this.target});
-
-  double get progress => target <= 0 ? 0 : (saved / target).clamp(0.0, 1.0);
+  /// Bucks' line on this tab, based on the real goals.
+  String _goalsMessage(AppStateProvider app) {
+    final goals = app.goals;
+    if (goals.isEmpty) {
+      return "Bawk! Let's set your first savings goal!";
+    }
+    if (goals.any((g) => g.isComplete)) {
+      return 'Bawk! We reached your savings goal!';
+    }
+    if (app.totalSavingsContributions <= 0) {
+      return "Bawk! Add some money to a goal and let's get saving!";
+    }
+    return "Bawk! Great progress!\nYou're one step closer to\nyour savings goal!";
+  }
 }
 
 /// Bright blue header: "BUCKS" (gold, left), a white "Buck's Insights"
@@ -168,8 +212,13 @@ class _GoalData {
 class _GoalsHeader extends StatelessWidget {
   final Color blue;
   final Color yellow;
+  final double progress;
 
-  const _GoalsHeader({required this.blue, required this.yellow});
+  const _GoalsHeader({
+    required this.blue,
+    required this.yellow,
+    required this.progress,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -215,7 +264,7 @@ class _GoalsHeader extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
             child: LinearProgressIndicator(
-              value: 0.6, // placeholder — no real level/XP data yet
+              value: progress, // real XP progress to the next level
               minHeight: 4,
               backgroundColor: Colors.white24,
               valueColor: AlwaysStoppedAnimation<Color>(yellow),
@@ -231,7 +280,9 @@ class _GoalsHeader extends StatelessWidget {
 /// message (right). Reuses the same Icons.emoji_nature placeholder
 /// used on the other tabs, without touching BucksCompanion's file.
 class _BucksGoalSection extends StatelessWidget {
-  const _BucksGoalSection();
+  final String message;
+
+  const _BucksGoalSection({required this.message});
 
   @override
   Widget build(BuildContext context) {
@@ -262,7 +313,7 @@ class _BucksGoalSection extends StatelessWidget {
         const SizedBox(width: 14),
         Expanded(
           child: Text(
-            "Bawk! Great progress!\nYou're one step closer to\nyour savings goal!",
+            message,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: const Color(0xFF17213F),
               fontWeight: FontWeight.w500,
@@ -277,7 +328,7 @@ class _BucksGoalSection extends StatelessWidget {
 /// Blue savings goal card: name + percentage, saved/target amount,
 /// and a yellow-on-green progress bar.
 class _SavingsGoalCard extends StatelessWidget {
-  final _GoalData goal;
+  final SavingsGoal goal;
   final Color blue;
   final Color darkNavy;
   final Color yellow;
@@ -328,7 +379,7 @@ class _SavingsGoalCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            '\u20b1${goal.saved.toStringAsFixed(0)} / \u20b1${goal.target.toStringAsFixed(0)}',
+            '${formatPeso(goal.savedAmount)} / ${formatPeso(goal.targetAmount)}',
             style: Theme.of(
               context,
             ).textTheme.bodyMedium?.copyWith(color: darkNavy),
@@ -499,9 +550,9 @@ class _BudgetPlannerButton extends StatelessWidget {
 }
 
 /// A simple bar chart built with plain Flutter widgets (no chart
-/// package/dependency). Shows [values] as vertical bars against a
-/// fixed $0–$4k axis on the left; the last bar is highlighted in a
-/// darker color with its value labeled above it.
+/// package/dependency). Shows [values] as vertical bars against an axis
+/// that scales to the data; the last bar is highlighted in a darker color
+/// with its value labeled above it.
 class _ReportsChart extends StatelessWidget {
   final List<double> values;
   final Color blue;
@@ -514,11 +565,13 @@ class _ReportsChart extends StatelessWidget {
   });
 
   static const double _chartHeight = 140;
-  static const double _maxValue = 4000; // matches the $4k axis top
 
   @override
   Widget build(BuildContext context) {
     final lastIndex = values.length - 1;
+    final maxValue = _niceMax(
+      values.fold<double>(0, (a, b) => a > b ? a : b),
+    );
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -529,11 +582,11 @@ class _ReportsChart extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('\$4k', style: TextStyle(color: blue, fontSize: 11)),
-              Text('\$3k', style: TextStyle(color: blue, fontSize: 11)),
-              Text('\$2k', style: TextStyle(color: blue, fontSize: 11)),
-              Text('\$1k', style: TextStyle(color: blue, fontSize: 11)),
-              Text('\$0', style: TextStyle(color: blue, fontSize: 11)),
+              for (var i = 4; i >= 0; i--)
+                Text(
+                  _pesoK(maxValue * i / 4),
+                  style: TextStyle(color: blue, fontSize: 11),
+                ),
             ],
           ),
         ),
@@ -548,7 +601,7 @@ class _ReportsChart extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: List.generate(values.length, (index) {
                 final isLast = index == lastIndex;
-                final heightFactor = (values[index] / _maxValue).clamp(
+                final heightFactor = (values[index] / maxValue).clamp(
                   0.0,
                   1.0,
                 );
@@ -591,7 +644,7 @@ class _ReportsChart extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
-                                  '\$${values[index].toStringAsFixed(0)}',
+                                  _pesoFull(values[index]),
                                   style: const TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
@@ -613,26 +666,14 @@ class _ReportsChart extends StatelessWidget {
   }
 }
 
-/// One month of sample finance data. Swap the sample list in
-/// [_SavingsScreenState._monthlyFinance] for real data later.
-class _MonthlyFinance {
-  final String month;
-  final double savings;
-  final double expenses;
-
-  const _MonthlyFinance({
-    required this.month,
-    required this.savings,
-    required this.expenses,
-  });
-}
-
 const Color _chartGrid = Color(0xFFE6E1D3);
 const Color _chartCardBg = Color(0xFFFFFBF2);
 const Color _expenseGreen = Color(0xFF2ECC71);
 
-/// Formats a value compactly with the peso sign, e.g. 6500 -> "₱6.5k".
+/// Formats a value compactly with the peso sign, e.g. 6500 -> "₱6.5k",
+/// 250 -> "₱250".
 String _pesoK(double v) {
+  if (v.abs() < 1000) return '\u20b1${v.round()}';
   final k = v / 1000;
   final text = k == k.roundToDouble()
       ? k.toStringAsFixed(0)
@@ -641,20 +682,25 @@ String _pesoK(double v) {
 }
 
 /// Full peso format with thousands separators, e.g. 15000 -> "₱15,000".
-String _pesoFull(double v) {
-  final digits = v.round().toString();
-  final buf = StringBuffer();
-  for (var i = 0; i < digits.length; i++) {
-    if (i > 0 && (digits.length - i) % 3 == 0) buf.write(',');
-    buf.write(digits[i]);
-  }
-  return '\u20b1$buf';
-}
+String _pesoFull(double v) => formatPeso(v);
 
-/// Rounds [maxValue] up to a tidy axis top (multiple of 4 steps of 1k+).
+/// Rounds [maxValue] up to a tidy axis top whose quarter step is a "nice"
+/// number (1, 2, 2.5, 5 or 10 x a power of ten). Empty data gets a small
+/// default axis.
 double _niceMax(double maxValue) {
-  const step = 4000.0;
-  return ((maxValue / step).ceil().clamp(1, 1000)) * step;
+  if (maxValue <= 0) return 400;
+  final raw = maxValue / 4;
+  var magnitude = 1.0;
+  while (magnitude * 10 <= raw) {
+    magnitude *= 10;
+  }
+  while (magnitude > raw) {
+    magnitude /= 10;
+  }
+  for (final m in const [1.0, 2.0, 2.5, 5.0, 10.0]) {
+    if (magnitude * m >= raw) return magnitude * m * 4;
+  }
+  return magnitude * 10 * 4;
 }
 
 void _paintText(
@@ -736,7 +782,7 @@ class _ChartCard extends StatelessWidget {
 
 /// Graph 2: line chart of savings over time.
 class _SavingsProgressCard extends StatelessWidget {
-  final List<_MonthlyFinance> data;
+  final List<MonthlySummary> data;
   final Color blue;
   final Color darkNavy;
 
@@ -768,7 +814,7 @@ class _SavingsProgressCard extends StatelessWidget {
 }
 
 class _SavingsLinePainter extends CustomPainter {
-  final List<_MonthlyFinance> data;
+  final List<MonthlySummary> data;
   final Color blue;
   final Color darkNavy;
 
@@ -794,7 +840,7 @@ class _SavingsLinePainter extends CustomPainter {
       size.height - bottomPad,
     );
     final maxValue = _niceMax(
-      data.map((d) => d.savings).reduce((a, b) => a > b ? a : b),
+      data.map((d) => d.cumulativeSavings).reduce((a, b) => a > b ? a : b),
     );
 
     final gridPaint = Paint()
@@ -821,7 +867,7 @@ class _SavingsLinePainter extends CustomPainter {
       for (var i = 0; i < data.length; i++)
         Offset(
           plot.left + slot * (i + 0.5),
-          plot.bottom - plot.height * (data[i].savings / maxValue),
+          plot.bottom - plot.height * (data[i].cumulativeSavings / maxValue),
         ),
     ];
 
@@ -868,7 +914,7 @@ class _SavingsLinePainter extends CustomPainter {
     final last = points.last;
     _paintText(
       canvas,
-      _pesoFull(data.last.savings),
+      _pesoFull(data.last.cumulativeSavings),
       Offset(last.dx + 4, last.dy - 9),
       color: darkNavy,
       fontSize: 10,
@@ -884,7 +930,7 @@ class _SavingsLinePainter extends CustomPainter {
 
 /// Graph 3: grouped bars (savings vs expenses) per month.
 class _SavingsVsExpensesCard extends StatelessWidget {
-  final List<_MonthlyFinance> data;
+  final List<MonthlySummary> data;
   final Color blue;
   final Color yellow;
   final Color darkNavy;
@@ -945,7 +991,7 @@ class _SavingsVsExpensesCard extends StatelessWidget {
 }
 
 class _GroupedBarPainter extends CustomPainter {
-  final List<_MonthlyFinance> data;
+  final List<MonthlySummary> data;
   final Color savingsColor;
   final Color expensesColor;
   final Color labelColor;
@@ -974,7 +1020,7 @@ class _GroupedBarPainter extends CustomPainter {
     );
     final maxValue = _niceMax(
       data
-          .map((d) => d.savings > d.expenses ? d.savings : d.expenses)
+          .map((d) => d.saved > d.expenses ? d.saved : d.expenses)
           .reduce((a, b) => a > b ? a : b),
     );
 
@@ -1022,7 +1068,7 @@ class _GroupedBarPainter extends CustomPainter {
     for (var i = 0; i < data.length; i++) {
       final cx = plot.left + slot * (i + 0.5);
       final offset = (barWidth + barGap) / 2;
-      drawBar(cx - offset, data[i].savings, savingsColor);
+      drawBar(cx - offset, data[i].saved, savingsColor);
       drawBar(cx + offset, data[i].expenses, expensesColor);
       _paintText(
         canvas,

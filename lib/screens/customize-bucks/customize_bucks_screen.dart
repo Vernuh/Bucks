@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../models/customization_item.dart';
 import '../../providers/app_state_provider.dart';
 
 /// Customize Bucks: buy and equip outfits, hats and accessories.
 ///
-/// All state (balance, unlocked, equipped) lives in [AppStateProvider];
-/// this screen only holds the static catalog below.
+/// All state (balance, unlocked, equipped) lives in [AppStateProvider] and
+/// the static catalog lives in [CustomizationCatalog]. This screen only
+/// displays them and calls the provider's purchase/equip methods.
 class CustomizeBucksScreen extends StatelessWidget {
   const CustomizeBucksScreen({super.key});
 
@@ -15,45 +17,19 @@ class CustomizeBucksScreen extends StatelessWidget {
   static const Color _navy = Color(0xFF17213F);
   static const Color _green = Color(0xFF218B0D);
 
-  static const List<_Category> _categories = [
-    _Category('Outfits', [
-      _Item('outfit_simple', 'Simple Outfit', 50, Icons.checkroom),
-      _Item('outfit_hoodie', 'Hoodie', 150, Icons.checkroom),
-      _Item('outfit_fancy', 'Fancy Outfit', 200, Icons.checkroom),
-    ]),
-    _Category('Hats', [
-      _Item('hat_simple', 'Simple Hat', 50, Icons.emoji_people),
-      _Item('hat_cap', 'Cap', 75, Icons.emoji_people),
-      _Item('hat_crown', 'Crown', 300, Icons.workspace_premium),
-    ]),
-    _Category('Accessories', [
-      _Item('acc_sunglasses', 'Sunglasses', 75, Icons.wb_sunny),
-      _Item('acc_backpack', 'Backpack', 100, Icons.backpack),
-      _Item('acc_golden_glasses', 'Golden Glasses', 250, Icons.visibility),
-    ]),
-  ];
-
-  void _onTap(BuildContext context, _Category cat, _Item item) {
+  void _onTap(BuildContext context, CustomizationItem item) {
     final app = context.read<AppStateProvider>();
-    final messenger = ScaffoldMessenger.of(context);
-    String msg;
+    final ActionResult result;
 
     if (app.isCustomizationUnlocked(item.id)) {
-      if (app.isCustomizationEquipped(cat.name, item.id)) {
-        msg = 'Already equipped';
-      } else {
-        app.equipCustomizationItem(cat.name, item.id);
-        msg = '${item.name} equipped!';
-      }
-    } else if (app.purchaseCustomizationItem(item.id, item.cost)) {
-      msg = '${item.name} unlocked!';
+      result = app.equipCustomizationItem(item.id);
     } else {
-      msg = 'Not enough Bucks!';
+      result = app.purchaseCustomizationItem(item.id);
     }
 
-    messenger
+    ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(msg)));
+      ..showSnackBar(SnackBar(content: Text(result.message)));
   }
 
   @override
@@ -76,11 +52,11 @@ class CustomizeBucksScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _preview(app.buckPoints),
-              for (final cat in _categories) ...[
+              _preview(app.buckCoins, app.equippedItems),
+              for (final category in CustomizationCatalog.categories) ...[
                 const SizedBox(height: 24),
                 Text(
-                  cat.name,
+                  category,
                   style: const TextStyle(
                     color: _navy,
                     fontSize: 18,
@@ -88,8 +64,15 @@ class CustomizeBucksScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 10),
-                _grid(context, app, cat),
+                _grid(context, app, category),
               ],
+              const SizedBox(height: 16),
+              Text(
+                'Item pictures are placeholder icons until the final Bucks '
+                'art is added.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
+              ),
             ],
           ),
         ),
@@ -97,7 +80,7 @@ class CustomizeBucksScreen extends StatelessWidget {
     );
   }
 
-  Widget _preview(int balance) {
+  Widget _preview(int balance, List<CustomizationItem> equipped) {
     return Column(
       children: [
         Stack(
@@ -127,6 +110,14 @@ class CustomizeBucksScreen extends StatelessWidget {
             fontWeight: FontWeight.bold,
           ),
         ),
+        const SizedBox(height: 4),
+        Text(
+          equipped.isEmpty
+              ? 'Nothing equipped yet'
+              : 'Equipped: ${equipped.map((i) => i.name).join(', ')}',
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: _navy, fontSize: 12),
+        ),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
@@ -153,7 +144,7 @@ class CustomizeBucksScreen extends StatelessWidget {
     );
   }
 
-  Widget _grid(BuildContext context, AppStateProvider app, _Category cat) {
+  Widget _grid(BuildContext context, AppStateProvider app, String category) {
     return GridView.count(
       crossAxisCount: 3,
       shrinkWrap: true,
@@ -163,8 +154,8 @@ class CustomizeBucksScreen extends StatelessWidget {
       // Tall enough for icon + 2-line name + price + button on small phones.
       childAspectRatio: 0.62,
       children: [
-        for (final item in cat.items)
-          _itemCard(context, app, cat, item),
+        for (final item in CustomizationCatalog.inCategory(category))
+          _itemCard(context, app, item),
       ],
     );
   }
@@ -172,11 +163,10 @@ class CustomizeBucksScreen extends StatelessWidget {
   Widget _itemCard(
     BuildContext context,
     AppStateProvider app,
-    _Category cat,
-    _Item item,
+    CustomizationItem item,
   ) {
     final unlocked = app.isCustomizationUnlocked(item.id);
-    final equipped = app.isCustomizationEquipped(cat.name, item.id);
+    final equipped = app.isCustomizationEquipped(item.id);
     final label = equipped ? 'Equipped \u2713' : (unlocked ? 'Equip' : 'Buy');
 
     return Container(
@@ -228,7 +218,7 @@ class CustomizeBucksScreen extends StatelessWidget {
             width: double.infinity,
             height: 30,
             child: ElevatedButton(
-              onPressed: () => _onTap(context, cat, item),
+              onPressed: () => _onTap(context, item),
               style: ElevatedButton.styleFrom(
                 padding: EdgeInsets.zero,
                 backgroundColor: equipped
@@ -254,18 +244,4 @@ class CustomizeBucksScreen extends StatelessWidget {
       ),
     );
   }
-}
-
-class _Category {
-  final String name;
-  final List<_Item> items;
-  const _Category(this.name, this.items);
-}
-
-class _Item {
-  final String id;
-  final String name;
-  final int cost;
-  final IconData icon;
-  const _Item(this.id, this.name, this.cost, this.icon);
 }
