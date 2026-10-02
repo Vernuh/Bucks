@@ -125,9 +125,17 @@ class ProfileScreen extends StatelessWidget {
     );
 
     if (confirmed == true && context.mounted) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('Sign out coming soon!')));
+      final messenger = ScaffoldMessenger.of(context);
+      final navigator = Navigator.of(context);
+      // On success AuthGate swaps to Login and the in-memory state is cleared.
+      final result = await context.read<AppStateProvider>().signOut();
+      if (result.success) {
+        navigator.popUntil((route) => route.isFirst);
+      } else {
+        messenger
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(result.message)));
+      }
     }
   }
 }

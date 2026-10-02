@@ -12,7 +12,8 @@ import '../models/savings_goal.dart';
 import '../models/transaction.dart';
 import '../models/upcoming_item.dart';
 import '../models/user.dart';
-import '../services/storage_service.dart';
+import '../services/bucks_backend.dart';
+import '../services/supabase_service.dart';
 import '../utils/formatters.dart';
 
 /// Outcome of a user action, so screens can show a message without
@@ -23,23 +24,31 @@ class ActionResult {
   const ActionResult(this.success, this.message);
 }
 
-/// The ONE source of truth for the current user's data.
+/// Where the app is in the sign-in lifecycle. The UI shows a loading screen
+/// until the signed-in user's data has been loaded from Supabase.
+enum AuthStatus { initializing, signedOut, signedIn, loadFailed }
+
+/// The ONE in-memory source of truth for the current user's data.
 ///
-///   Screen -> AppStateProvider (logic) -> StorageService -> local storage
+///   Screen -> AppStateProvider (logic) -> SupabaseService -> Supabase
 ///   AppStateProvider -> notifyListeners() -> every watching screen
+///
+/// Supabase (Auth + PostgreSQL) is the only PERSISTENT store. Changes are
+/// applied in memory immediately and written to Supabase right after; a
+/// failed write is kept and retried (see [syncError] / [retrySync]).
 ///
 /// Screens read getters and call methods here. They never compute balances,
 /// grant rewards, or touch Bucks Coins / customization state themselves.
 class AppStateProvider extends ChangeNotifier {
-  AppStateProvider({StorageService? storage, DateTime Function()? clock})
-      : _storage = storage ?? StorageService(),
+  AppStateProvider({BucksBackend? backend, DateTime Function()? clock})
+      : _backend = backend ?? SupabaseService.instance,
         _clock = clock ?? DateTime.now;
 
-  final StorageService _storage;
+  final BucksBackend _backend;
   final DateTime Function() _clock;
 
   // --- state ---------------------------------------------------------------
-  User _user = User(id: 'local-user', username: 'Student');
+  User _user = User(id: '', username: '');
   final List<Transaction> _transactions = []; // oldest -> newest
   final List<SavingsGoal> _goals = [];
   final List<Budget> _budgetDefs = []; // limits only; spent is derived
@@ -50,6 +59,9 @@ class AppStateProvider extends ChangeNotifier {
   final Map<String, String> _equippedCustomization = {}; // category -> id
 
   bool _loaded = false;
+  AuthStatus _status = AuthStatus.initializing;
+  String? _loadError;
+  String? _syncError;
   int _idCounter = 0;
 
   // Per-action bookkeeping so the result message can mention rewards.
@@ -63,16 +75,118 @@ class AppStateProvider extends ChangeNotifier {
 
   Future<void> _pendingSave = Future<void>.value();
 
-  // --- startup -------------------------------------------------------------
+  // --- auth + startup ------------------------------------------------------
 
   bool get isLoaded => _loaded;
+  AuthStatus get authStatus => _status;
+  bool get isSignedIn => _status == AuthStatus.signedIn;
 
-  /// Restores saved data, then makes sure today's missions/streak are
-  /// correct. Nothing is reset: missing data just means a fresh start.
-  Future<void> load() async {
-    final data = await _storage.load();
+  /// Why the first load failed (shown with a Retry button), if it did.
+  String? get loadError => _loadError;
 
-    if (data.user != null) _user = data.user!;
+  /// Set when the last write to Supabase failed. The change is still in
+  /// memory and is retried on the next save or [retrySync].
+  String? get syncError => _syncError;
+
+  /// Called once at app start: restores the existing Supabase session (if
+  /// any) and loads that user's data BEFORE the main app is shown.
+  Future<void> restoreSession() async {
+    final uid = _backend.currentUserId;
+    if (uid == null) {
+      _status = AuthStatus.signedOut;
+      notifyListeners();
+      return;
+    }
+    _status = AuthStatus.initializing;
+    _loadError = null;
+    notifyListeners();
+    try {
+      await _loadFor(uid);
+    } on BackendException catch (e) {
+      _loadError = e.message;
+      _status = AuthStatus.loadFailed;
+      notifyListeners();
+    }
+  }
+
+  /// Registers with Supabase Auth. On success (and a session), the new
+  /// user's profile/stats exist and an empty account is loaded.
+  Future<ActionResult> register({
+    required String username,
+    required String email,
+    required String password,
+  }) async {
+    final name = username.trim();
+    final mail = email.trim();
+    if (name.isEmpty) return const ActionResult(false, 'Enter a username.');
+    if (mail.isEmpty) return const ActionResult(false, 'Enter your email.');
+    if (password.length < 6) {
+      return const ActionResult(
+          false, 'Password must be at least 6 characters.');
+    }
+    try {
+      final out = await _backend.signUp(
+          email: mail, password: password, username: name);
+      if (out.needsEmailConfirmation || out.userId == null) {
+        return const ActionResult(true,
+            'Account created! Check your email to confirm it, then log in.');
+      }
+      await _loadFor(out.userId!);
+      return const ActionResult(true, 'Welcome to BUCKS!');
+    } on BackendException catch (e) {
+      return ActionResult(false, e.message);
+    }
+  }
+
+  Future<ActionResult> signIn({
+    required String email,
+    required String password,
+  }) async {
+    final mail = email.trim();
+    if (mail.isEmpty || password.isEmpty) {
+      return const ActionResult(false, 'Enter your email and password.');
+    }
+    try {
+      final out = await _backend.signIn(email: mail, password: password);
+      await _loadFor(out.userId!);
+      return const ActionResult(true, 'Logged in.');
+    } on BackendException catch (e) {
+      // Don't leave a half-signed-in session behind if loading failed.
+      if (_backend.currentUserId != null && !_loaded) {
+        try {
+          await _backend.signOut();
+        } catch (_) {}
+      }
+      return ActionResult(false, e.message);
+    }
+  }
+
+  /// Signs out of Supabase and clears ALL user-specific in-memory state.
+  Future<ActionResult> signOut() async {
+    await _pendingSave;
+    try {
+      await _backend.signOut();
+    } on BackendException catch (e) {
+      return ActionResult(false, e.message);
+    }
+    _clearUserState();
+    _status = AuthStatus.signedOut;
+    notifyListeners();
+    return const ActionResult(true, 'Signed out.');
+  }
+
+  Future<void> _loadFor(String uid) async {
+    final data = await _backend.loadUserData(uid);
+    _applyLoaded(data, uid);
+    _loaded = true;
+    _status = AuthStatus.signedIn;
+    _loadError = null;
+    _persist();
+    notifyListeners();
+  }
+
+  void _applyLoaded(StoredData data, String uid) {
+    _user = (data.user ?? User(id: uid, username: 'Student')).copyWith();
     _transactions
       ..clear()
       ..addAll(data.transactions);
@@ -106,13 +220,31 @@ class AppStateProvider extends ChangeNotifier {
     _beginAction();
     _syncDay();
     _checkAchievements();
-    _loaded = true;
-    _persist();
-    notifyListeners();
+  }
+
+  void _clearUserState() {
+    _user = User(id: '', username: '');
+    _transactions.clear();
+    _goals.clear();
+    _budgetDefs.clear();
+    _upcoming.clear();
+    _missions = [];
+    _achievements.clear();
+    _unlockedCustomization.clear();
+    _equippedCustomization.clear();
+    _eventMessage = null;
+    _eventAt = null;
+    _loaded = false;
+    _loadError = null;
+    _syncError = null;
+    _pendingSave = Future<void>.value();
   }
 
   /// Completes when everything queued for saving has been written.
   Future<void> flush() => _pendingSave;
+
+  /// Retries writing anything that failed to reach Supabase.
+  void retrySync() => _persist();
 
   // --- level / XP ----------------------------------------------------------
 
@@ -591,11 +723,16 @@ class AppStateProvider extends ChangeNotifier {
 
   // --- reset / debug -------------------------------------------------------
 
-  /// Wipes all saved data and starts fresh.
-  Future<void> resetAllData() async {
+  /// Deletes this account's BUCKS data in Supabase (the login account itself
+  /// stays) and starts fresh.
+  Future<ActionResult> resetAllData() async {
     await _pendingSave;
-    await _storage.clear();
-    _user = User(id: 'local-user', username: 'Student');
+    try {
+      await _backend.deleteUserData(_user.id);
+    } on BackendException catch (e) {
+      return ActionResult(false, e.message);
+    }
+    _user = User(id: _user.id, username: _user.username, email: _user.email);
     _transactions.clear();
     _goals.clear();
     _budgetDefs.clear();
@@ -606,11 +743,13 @@ class AppStateProvider extends ChangeNotifier {
     _equippedCustomization.clear();
     _eventMessage = null;
     _eventAt = null;
+    _syncError = null;
 
     _beginAction();
     _syncDay();
     _persist();
     notifyListeners();
+    return const ActionResult(true, 'All data reset.');
   }
 
   /// DEBUG BUILDS ONLY: sets the Bucks Coins balance so purchases and
@@ -768,9 +907,12 @@ class AppStateProvider extends ChangeNotifier {
     return picked;
   }
 
-  /// Snapshots current state and queues a write (writes are chained, so
-  /// they finish in order).
+  /// Snapshots current state and queues a write to Supabase (writes are
+  /// chained, so they finish in order). Failures never lose in-memory data;
+  /// they set [syncError] and the next save retries.
   void _persist() {
+    if (!_loaded || _user.id.isEmpty) return;
+    final uid = _user.id;
     final snapshot = StoredData(
       user: _user,
       transactions: List.of(_transactions),
@@ -783,9 +925,20 @@ class AppStateProvider extends ChangeNotifier {
       equippedCustomization: Map.of(_equippedCustomization),
     );
     _pendingSave = _pendingSave
-        .then((_) => _storage.save(snapshot))
-        .catchError((Object e) {
+        .then((_) => _backend.saveUserData(uid, snapshot))
+        .then((_) {
+      if (_syncError != null && _user.id == uid) {
+        _syncError = null;
+        notifyListeners();
+      }
+    }).catchError((Object e) {
       debugPrint('AppStateProvider: save failed: $e');
+      if (_user.id == uid) {
+        _syncError = e is BackendException
+            ? e.message
+            : 'Could not save your changes.';
+        notifyListeners();
+      }
     });
   }
 }

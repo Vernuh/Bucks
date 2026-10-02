@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/app_state_provider.dart';
 
-/// Edit the display name, reset local data, and (debug builds only) set
+/// Edit the display name, reset account data, and (debug builds only) set
 /// the Bucks Coins balance for testing purchases.
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -44,7 +44,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: const Text('Reset all data?'),
         content: const Text(
           'This deletes your transactions, goals, budgets, Bucks Coins, XP '
-          'and customization from this device. It cannot be undone.',
+          'and customization from your account. It cannot be undone.',
         ),
         actions: [
           TextButton(
@@ -59,10 +59,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
     if (confirmed != true) return;
-    await app.resetAllData();
+    final result = await app.resetAllData();
     if (!mounted) return;
     _nameController.text = app.username;
-    _toast('All data reset.');
+    _toast(result.message);
   }
 
   @override

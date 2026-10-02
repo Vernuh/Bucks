@@ -241,20 +241,24 @@ class _GoalsHeader extends StatelessWidget {
                   ),
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
+              Material(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(100),
+                child: InkWell(
                   borderRadius: BorderRadius.circular(100),
-                ),
-                child: Text(
-                  "Buck's Insights",
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: blue,
-                    fontWeight: FontWeight.bold,
+                  onTap: () => Navigator.pushNamed(context, Routes.chat),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    child: Text(
+                      "Buck's Insights",
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: blue,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
               ),

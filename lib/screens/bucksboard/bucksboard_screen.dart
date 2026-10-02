@@ -34,7 +34,7 @@ class BucksboardScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           const Text(
-            'Your stats (this device only)',
+            'Your stats',
             style: TextStyle(
                 color: _navy, fontWeight: FontWeight.bold, fontSize: 16),
           ),

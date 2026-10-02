@@ -1,19 +1,26 @@
 import 'package:bucks/models/transaction.dart';
 import 'package:bucks/providers/app_state_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'fake_backend.dart';
 
 void main() {
   late DateTime now;
+  late FakeBackend backend;
 
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
+    backend = FakeBackend();
     now = DateTime(2026, 10, 2, 10);
   });
 
-  Future<AppStateProvider> create() async {
-    final p = AppStateProvider(clock: () => now);
-    await p.load();
+  AppStateProvider newProvider() =>
+      AppStateProvider(backend: backend, clock: () => now);
+
+  /// Registers a brand-new account and returns its loaded provider.
+  Future<AppStateProvider> create({String email = 'a@test.com'}) async {
+    final p = newProvider();
+    final r = await p.register(
+        username: 'Tester', email: email, password: 'secret12');
+    expect(r.success, isTrue, reason: r.message);
     return p;
   }
 
@@ -26,8 +33,10 @@ void main() {
     expect(AppStateProvider.levelForXp(250), 3);
   });
 
-  test('fresh start has no fake data', () async {
+  test('fresh account has no fake data', () async {
     final p = await create();
+    expect(p.isSignedIn, isTrue);
+    expect(p.username, 'Tester');
     expect(p.transactions, isEmpty);
     expect(p.goals, isEmpty);
     expect(p.availableBalance, 0);
@@ -137,7 +146,7 @@ void main() {
     expect(p.isCustomizationEquipped('hat_cap'), isTrue);
   });
 
-  test('everything persists across a restart', () async {
+  test('everything persists across a restart (session restored)', () async {
     final p1 = await create();
     p1.debugSetBuckCoins(150);
     p1.purchaseCustomizationItem('hat_simple');
@@ -147,7 +156,12 @@ void main() {
         type: TransactionType.expense, amount: 150, category: 'Food');
     await p1.flush();
 
-    final p2 = await create();
+    // New provider = app restart; the backend still has the session.
+    final p2 = newProvider();
+    expect(p2.authStatus, AuthStatus.initializing);
+    await p2.restoreSession();
+
+    expect(p2.isSignedIn, isTrue);
     expect(p2.buckCoins, p1.buckCoins);
     expect(p2.xp, p1.xp);
     expect(p2.isCustomizationUnlocked('hat_simple'), isTrue);
@@ -158,6 +172,70 @@ void main() {
     expect(p2.missions.map((m) => m.id), p1.missions.map((m) => m.id));
     expect(p2.missions.map((m) => m.isCompleted),
         p1.missions.map((m) => m.isCompleted));
+  });
+
+  test('no session on start -> signed out', () async {
+    final p = newProvider();
+    await p.restoreSession();
+    expect(p.authStatus, AuthStatus.signedOut);
+  });
+
+  test('wrong password fails and stays signed out', () async {
+    await create();
+    await backend.signOut();
+    final p = newProvider();
+    final r = await p.signIn(email: 'a@test.com', password: 'nope');
+    expect(r.success, isFalse);
+    expect(p.isSignedIn, isFalse);
+  });
+
+  test('logout clears in-memory state; login restores it', () async {
+    final p = await create();
+    p.addTransaction(
+        type: TransactionType.income, amount: 500, category: 'Allowance');
+    await p.flush();
+
+    expect((await p.signOut()).success, isTrue);
+    expect(p.authStatus, AuthStatus.signedOut);
+    expect(p.transactions, isEmpty);
+    expect(p.buckCoins, 0);
+    expect(p.username, '');
+
+    final r = await p.signIn(email: 'a@test.com', password: 'secret12');
+    expect(r.success, isTrue);
+    expect(p.transactions.length, 1);
+  });
+
+  test('user B never sees user A data', () async {
+    final a = await create(email: 'a@test.com');
+    a.addTransaction(
+        type: TransactionType.income, amount: 500, category: 'Allowance');
+    a.addGoal(name: 'Laptop', target: 1000);
+    a.setBudget(category: 'Food', limit: 100);
+    await a.flush();
+    await a.signOut();
+
+    final b = await create(email: 'b@test.com');
+    expect(b.transactions, isEmpty);
+    expect(b.goals, isEmpty);
+    expect(b.budgets, isEmpty);
+    expect(b.availableBalance, 0);
+  });
+
+  test('failed save keeps data in memory, reports and retries', () async {
+    final p = await create();
+    backend.failSaves = true;
+    p.addTransaction(
+        type: TransactionType.expense, amount: 20, category: 'Food');
+    await p.flush();
+    expect(p.syncError, isNotNull);
+    expect(p.transactions.length, 1);
+
+    backend.failSaves = false;
+    p.retrySync();
+    await p.flush();
+    expect(p.syncError, isNull);
+    expect(backend.rowsFor(backend.currentUserId!)!.transactions.length, 1);
   });
 
   test('same day keeps missions; new day regenerates and grows streak',

@@ -1,17 +1,30 @@
-# bucks
+# BUCKS
 
-A new Flutter project.
+Student finance manager built with Flutter. Auth and data live in Supabase.
 
-## Getting Started
+## Architecture
 
-This project is a starting point for a Flutter application.
+    Screen -> AppStateProvider -> SupabaseService -> Supabase (Auth + Postgres + RLS)
 
-A few resources to get you started if this is your first Flutter project:
+AppStateProvider is the in-memory state; Supabase is the only persistent store.
+The signed-in user's `auth.users.id` owns every row. Row Level Security
+(`supabase/schema.sql`) stops one user from reading another user's data.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Setup
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+1. Create a Supabase project.
+2. In the dashboard open **SQL Editor**, paste `supabase/schema.sql`, and run it.
+3. Copy `.env.example` to `.env` and fill in your project URL and **public**
+   (anon / publishable) key from Project Settings > API.
+4. Run:
+
+       flutter pub get
+       flutter run -d chrome --dart-define-from-file=.env
+
+`.env` is git-ignored. Never put the service-role key, database password or
+AI keys in this app.
+
+## Tests
+
+    flutter analyze
+    flutter test

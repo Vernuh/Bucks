@@ -70,8 +70,25 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final syncError =
+        context.select<AppStateProvider, String?>((a) => a.syncError);
+
     return Scaffold(
-      body: IndexedStack(index: _index, children: _tabs),
+      body: Column(
+        children: [
+          if (syncError != null)
+            MaterialBanner(
+              content: Text("Couldn't save to your account. $syncError"),
+              actions: [
+                TextButton(
+                  onPressed: () => context.read<AppStateProvider>().retrySync(),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          Expanded(child: IndexedStack(index: _index, children: _tabs)),
+        ],
+      ),
       bottomNavigationBar: MainNavBar(
         currentIndex: _index,
         onTap: _onTabTap,

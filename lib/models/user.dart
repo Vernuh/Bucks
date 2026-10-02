@@ -2,7 +2,7 @@
 /// balance ([buckCoins]) and one XP value ([xp]) in the whole app, and they
 /// live here. Level is DERIVED from [xp] by AppStateProvider.
 ///
-/// Auth is still a placeholder, so no password is ever stored.
+/// Authentication is handled by Supabase Auth; no password is ever stored here.
 class User {
   final String id;
   final String username;
