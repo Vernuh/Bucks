@@ -246,7 +246,12 @@ class _GoalsHeader extends StatelessWidget {
                 borderRadius: BorderRadius.circular(100),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(100),
-                  onTap: () => Navigator.pushNamed(context, Routes.chat),
+                  onTap: () => Navigator.pushNamed(
+                    context,
+                    Routes.chat,
+                    // Opens the chat and asks Bucks about the user's goals.
+                    arguments: 'How close am I to my savings goal?',
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 14,
