@@ -94,6 +94,15 @@ class SavingsScreen extends StatelessWidget {
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: _DebtTrackerButton(
+                  yellow: _yellow,
+                  darkNavy: _darkNavy,
+                  onTap: () => Navigator.pushNamed(context, Routes.debtTracker),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: _BudgetPlannerButton(
                   blue: _blue,
                   yellow: _yellow,
@@ -508,6 +517,49 @@ class _CreateGoalButton extends StatelessWidget {
           child: Text(
             'Create Goal',
             style: TextStyle(color: darkNavy, fontWeight: FontWeight.bold),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Large navy rounded button leading to the Debt Tracker.
+class _DebtTrackerButton extends StatelessWidget {
+  final Color yellow;
+  final Color darkNavy;
+  final VoidCallback onTap;
+
+  const _DebtTrackerButton({
+    required this.yellow,
+    required this.darkNavy,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: darkNavy,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  'Debt Tracker',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: yellow,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Icon(Icons.account_balance_wallet, color: yellow, size: 28),
+            ],
           ),
         ),
       ),

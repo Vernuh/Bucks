@@ -85,6 +85,43 @@ create table if not exists public.upcoming_items (
   primary key (user_id, id)
 );
 
+-- ---------- debts (money I owe / money owed to me) -------------------
+-- remaining = original_amount - amount_paid is DERIVED in the app, never
+-- stored. status is kept in sync by the sync_debt_status trigger below.
+-- Debts are obligations, not cash movements: no transaction is created.
+create table if not exists public.debts (
+  user_id          uuid not null references auth.users (id) on delete cascade,
+  id               text not null,                       -- client-generated id
+  type             text not null check (type in ('i_owe', 'owed_to_me')),
+  title            text not null check (char_length(btrim(title)) > 0),
+  person_name      text check (person_name is null or char_length(btrim(person_name)) > 0),
+  original_amount  numeric(14,2) not null check (original_amount > 0),
+  amount_paid      numeric(14,2) not null default 0 check (amount_paid >= 0),
+  due_date         date,
+  notes            text,
+  status           text not null default 'active' check (status in ('active', 'paid')),
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now(),
+  primary key (user_id, id),
+  check (amount_paid <= original_amount)
+);
+create index if not exists debts_user_status_due_idx
+  on public.debts (user_id, status, due_date);
+
+create or replace function public.sync_debt_status()
+returns trigger language plpgsql
+set search_path = public
+as $$
+begin
+  new.status := case when new.amount_paid >= new.original_amount
+                     then 'paid' else 'active' end;
+  return new;
+end;
+$$;
+drop trigger if exists sync_debt_status on public.debts;
+create trigger sync_debt_status before insert or update on public.debts
+  for each row execute function public.sync_debt_status();
+
 -- ---------- user_missions (templates stay predefined in the app) ------
 create table if not exists public.user_missions (
   user_id         uuid not null references auth.users (id) on delete cascade,
@@ -125,7 +162,7 @@ create unique index if not exists user_customizations_one_equipped_idx
 do $$
 declare t text;
 begin
-  foreach t in array array['profiles','user_stats','savings_goals','budgets'] loop
+  foreach t in array array['profiles','user_stats','savings_goals','budgets','debts'] loop
     execute format('drop trigger if exists set_updated_at on public.%I', t);
     execute format(
       'create trigger set_updated_at before update on public.%I
@@ -185,7 +222,7 @@ do $$
 declare t text;
 begin
   foreach t in array array[
-    'transactions','budgets','savings_goals','upcoming_items',
+    'transactions','budgets','savings_goals','upcoming_items','debts',
     'user_missions','user_achievements','user_stats','user_customizations'
   ] loop
     execute format('alter table public.%I enable row level security', t);

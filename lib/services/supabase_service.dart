@@ -4,8 +4,10 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
 import '../config/app_config.dart';
+import '../utils/formatters.dart';
 import '../models/budget.dart';
 import '../models/customization_item.dart';
+import '../models/debt.dart';
 import '../models/mission.dart';
 import '../models/mission_pool.dart';
 import '../models/savings_goal.dart';
@@ -171,6 +173,7 @@ class SupabaseService implements BucksBackend {
       final budgetRows = await _db.from('budgets').select().eq('user_id', uid);
       final upcomingRows =
           await _db.from('upcoming_items').select().eq('user_id', uid);
+      final debtRows = await _loadDebtRows(uid);
       // Only the most recent day's missions are needed in memory
       // (older rows stay in the DB as the reward history).
       final missionRows = await _db
@@ -191,6 +194,7 @@ class SupabaseService implements BucksBackend {
       final transactions = txRows.map(_transactionFromRow).toList();
       final budgets = budgetRows.map(_budgetFromRow).toList();
       final upcoming = upcomingRows.map(_upcomingFromRow).toList();
+      final debts = debtRows.map(Debt.fromJson).toList();
 
       var missions = <Mission>[];
       if (missionRows.isNotEmpty) {
@@ -220,6 +224,7 @@ class SupabaseService implements BucksBackend {
         goals: goals,
         budgets: budgets,
         upcoming: upcoming,
+        debts: debts,
         missions: missions,
         achievements: achievements,
         unlockedCustomization: unlocked,
@@ -237,6 +242,36 @@ class SupabaseService implements BucksBackend {
     }
   }
 
+  // --- debts -------------------------------------------------------------
+
+  /// Re-reads the signed-in user's debts and records them as "in sync", so
+  /// the next save only sends real changes. RLS also limits this to the
+  /// caller's own rows; the explicit filter is a second layer.
+  @override
+  Future<List<Debt>> loadDebts(String uid) async {
+    if (uid.isEmpty || uid != currentUserId) {
+      throw const BackendException('Please log in to see your debts.');
+    }
+    try {
+      final rows = await _loadDebtRows(uid);
+      final debts = rows.map(Debt.fromJson).toList();
+      _synced['debts'] = {
+        for (final x in debts) x.id: jsonEncode(_debtRow(uid, x)),
+      };
+      return debts;
+    } catch (e) {
+      debugPrint('SupabaseService.loadDebts error: $e');
+      if (e is BackendException) rethrow;
+      if (e is sb.PostgrestException) {
+        throw BackendException(_isMissingTable(e)
+            ? 'The debts table is missing in Supabase. Run the debts '
+                'migration in the SQL Editor.'
+            : 'Could not load your debts. Please try again.');
+      }
+      throw BackendException(_friendly(e));
+    }
+  }
+
   // --- save (diff-based) -------------------------------------------------
 
   @override
@@ -250,6 +285,7 @@ class SupabaseService implements BucksBackend {
         'budgets',
         'upcoming_items',
         'savings_goals',
+        'debts',
       ]) {
         await _deleteRemoved(uid, t, desired[t]!);
       }
@@ -261,6 +297,7 @@ class SupabaseService implements BucksBackend {
       await _upsertChanged(uid, 'budgets', desired['budgets']!, 'user_id,id');
       await _upsertChanged(
           uid, 'upcoming_items', desired['upcoming_items']!, 'user_id,id');
+      await _upsertChanged(uid, 'debts', desired['debts']!, 'user_id,id');
 
       // Missions / achievements are history: never deleted by a save.
       await _upsertChanged(
@@ -358,6 +395,7 @@ class SupabaseService implements BucksBackend {
         'budgets',
         'upcoming_items',
         'savings_goals',
+        'debts',
         'user_missions',
         'user_achievements',
         'user_customizations',
@@ -446,6 +484,11 @@ class SupabaseService implements BucksBackend {
             'date': ts(u.date),
           },
       },
+      // user_id always comes from the signed-in session ([uid]), never from
+      // the Debt object. created_at / updated_at are managed by the database.
+      'debts': {
+        for (final x in d.debts) x.id: _debtRow(uid, x),
+      },
       'user_missions': {
         for (final m in d.missions)
           m.id: {
@@ -478,6 +521,44 @@ class SupabaseService implements BucksBackend {
             },
       },
     };
+  }
+
+  Map<String, dynamic> _debtRow(String uid, Debt x) => {
+        'user_id': uid,
+        'id': x.id,
+        'type': x.type.value,
+        'title': x.title,
+        'person_name': x.personName,
+        'original_amount': x.originalAmount,
+        'amount_paid': x.amountPaid,
+        'due_date': x.dueDate == null ? null : dateKey(x.dueDate!),
+        'notes': x.notes,
+        'status': x.status.value,
+      };
+
+  /// True when Postgres/PostgREST says the table does not exist (the debts
+  /// migration has not been run yet).
+  bool _isMissingTable(sb.PostgrestException e) =>
+      e.code == '42P01' || e.code == 'PGRST205';
+
+  /// Debts for the initial load. If the migration has not been applied yet,
+  /// the rest of the app must still load, so a missing table counts as "no
+  /// debts" here (saving a debt would then fail visibly via syncError).
+  Future<List<Map<String, dynamic>>> _loadDebtRows(String uid) async {
+    try {
+      final rows = await _db
+          .from('debts')
+          .select()
+          .eq('user_id', uid)
+          .order('created_at', ascending: true);
+      return List<Map<String, dynamic>>.from(rows);
+    } on sb.PostgrestException catch (e) {
+      if (_isMissingTable(e)) {
+        debugPrint('debts table not found; run the debts migration.');
+        return const [];
+      }
+      rethrow;
+    }
   }
 
   /// Records what the DB currently holds, in the same shape [_rowsFor]

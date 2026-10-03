@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../models/achievement.dart';
 import '../models/budget.dart';
 import '../models/customization_item.dart';
+import '../models/debt.dart';
 import '../models/mission.dart';
 import '../models/mission_pool.dart';
 import '../models/monthly_summary.dart';
@@ -53,6 +54,7 @@ class AppStateProvider extends ChangeNotifier {
   final List<SavingsGoal> _goals = [];
   final List<Budget> _budgetDefs = []; // limits only; spent is derived
   final List<UpcomingItem> _upcoming = [];
+  final List<Debt> _debts = [];
   List<Mission> _missions = [];
   final Set<String> _achievements = {};
   final Set<String> _unlockedCustomization = {};
@@ -63,6 +65,11 @@ class AppStateProvider extends ChangeNotifier {
   String? _loadError;
   String? _syncError;
   int _idCounter = 0;
+
+  // Debt Tracker bookkeeping (not persisted).
+  bool _debtsLoading = false;
+  String? _debtsError;
+  int _debtsRevision = 0; // bumped by every local debt change
 
   // Per-action bookkeeping so the result message can mention rewards.
   int _rewardBucks = 0;
@@ -199,6 +206,9 @@ class AppStateProvider extends ChangeNotifier {
     _upcoming
       ..clear()
       ..addAll(data.upcoming);
+    _debts
+      ..clear()
+      ..addAll(data.debts);
     _missions = List.of(data.missions);
     _achievements
       ..clear()
@@ -228,6 +238,9 @@ class AppStateProvider extends ChangeNotifier {
     _goals.clear();
     _budgetDefs.clear();
     _upcoming.clear();
+    _debts.clear();
+    _debtsLoading = false;
+    _debtsError = null;
     _missions = [];
     _achievements.clear();
     _unlockedCustomization.clear();
@@ -564,6 +577,255 @@ class AppStateProvider extends ChangeNotifier {
     return _finish('Goal created: $trimmed.');
   }
 
+  // --- debt tracker --------------------------------------------------------
+  //
+  // Debts are obligations, not cash movements: nothing here creates a
+  // transaction, and nothing here grants Bucks / XP / mission progress.
+  // Every write is tied to the signed-in user (_user.id, from the Supabase
+  // session); screens never supply a user id.
+
+  static const double _maxDebtAmount = 99999999999.99;
+
+  List<Debt> get debts => List.unmodifiable(_debts);
+  bool get debtsLoading => _debtsLoading;
+
+  /// Friendly message from the last failed debt refresh, if any.
+  String? get debtsError => _debtsError;
+
+  /// Debts of one direction: active first, then soonest due date, then
+  /// newest.
+  List<Debt> debtsOfType(DebtType type) {
+    final list = _debts.where((d) => d.type == type).toList();
+    list.sort((a, b) {
+      if (a.isActive != b.isActive) return a.isActive ? -1 : 1;
+      final ad = a.dueDate;
+      final bd = b.dueDate;
+      if (ad != null && bd != null) {
+        final c = ad.compareTo(bd);
+        if (c != 0) return c;
+      } else if (ad != null) {
+        return -1;
+      } else if (bd != null) {
+        return 1;
+      }
+      return b.createdAt.compareTo(a.createdAt);
+    });
+    return list;
+  }
+
+  /// Still to be paid on active "Money I Owe" debts.
+  double get totalIOwe => _remainingTotal(DebtType.iOwe);
+
+  /// Still expected on active "Money Owed to Me" debts.
+  double get totalOwedToMe => _remainingTotal(DebtType.owedToMe);
+
+  double _remainingTotal(DebtType type) => roundMoney(_debts
+      .where((d) => d.type == type && d.isActive)
+      .fold(0.0, (sum, d) => sum + d.remaining));
+
+  /// The active debt (either direction) with the soonest due date.
+  Debt? get nextDebtDue {
+    final dated =
+        _debts.where((d) => d.isActive && d.dueDate != null).toList();
+    if (dated.isEmpty) return null;
+    dated.sort((a, b) => a.dueDate!.compareTo(b.dueDate!));
+    return dated.first;
+  }
+
+  bool get _canWriteDebts => _loaded && _user.id.isNotEmpty;
+
+  static const _loginFirst = ActionResult(false, 'Please log in first.');
+
+  /// Returns an error message for an invalid amount, or null if fine.
+  String? _amountError(double amount, {String what = 'amount'}) {
+    if (!amount.isFinite || amount <= 0) {
+      return 'Enter a valid $what greater than 0.';
+    }
+    if (roundMoney(amount) <= 0) return 'Enter a valid $what greater than 0.';
+    if (amount > _maxDebtAmount) return 'That amount is too large.';
+    return null;
+  }
+
+  String? _clean(String? v) {
+    final t = v?.trim();
+    return (t == null || t.isEmpty) ? null : t;
+  }
+
+  ActionResult addDebt({
+    required DebtType type,
+    required String title,
+    String? personName,
+    required double amount,
+    DateTime? dueDate,
+    String? notes,
+  }) {
+    if (!_canWriteDebts) return _loginFirst;
+    final cleanTitle = title.trim();
+    if (cleanTitle.isEmpty) {
+      return const ActionResult(false, 'Enter a short title for this debt.');
+    }
+    final amountError = _amountError(amount);
+    if (amountError != null) return ActionResult(false, amountError);
+
+    final now = _clock();
+    _debts.add(Debt(
+      id: _newId('debt'),
+      userId: _user.id,
+      type: type,
+      title: cleanTitle,
+      personName: _clean(personName),
+      originalAmount: roundMoney(amount),
+      amountPaid: 0,
+      dueDate: dueDate == null
+          ? null
+          : DateTime(dueDate.year, dueDate.month, dueDate.day),
+      notes: _clean(notes),
+      createdAt: now,
+      updatedAt: now,
+    ));
+    _debtsRevision++;
+    _persist();
+    notifyListeners();
+    return ActionResult(true, 'Debt added: $cleanTitle.');
+  }
+
+  /// Edits title, person, due date, notes and the original amount. The
+  /// type and the amount already paid are not editable here. The original
+  /// amount can never drop below what has already been paid.
+  ActionResult updateDebt(
+    String id, {
+    required String title,
+    String? personName,
+    required double originalAmount,
+    DateTime? dueDate,
+    String? notes,
+  }) {
+    if (!_canWriteDebts) return _loginFirst;
+    final idx = _debts.indexWhere((d) => d.id == id);
+    if (idx < 0) return const ActionResult(false, 'Debt not found.');
+    final current = _debts[idx];
+
+    final cleanTitle = title.trim();
+    if (cleanTitle.isEmpty) {
+      return const ActionResult(false, 'Enter a short title for this debt.');
+    }
+    final amountError = _amountError(originalAmount);
+    if (amountError != null) return ActionResult(false, amountError);
+    final newOriginal = roundMoney(originalAmount);
+    if (newOriginal < current.amountPaid) {
+      return ActionResult(
+          false,
+          'The amount can\'t be less than the '
+          '${formatPeso(current.amountPaid)} already paid.');
+    }
+
+    _debts[idx] = Debt(
+      id: current.id,
+      userId: current.userId,
+      type: current.type,
+      title: cleanTitle,
+      personName: _clean(personName),
+      originalAmount: newOriginal,
+      amountPaid: current.amountPaid,
+      dueDate: dueDate == null
+          ? null
+          : DateTime(dueDate.year, dueDate.month, dueDate.day),
+      notes: _clean(notes),
+      createdAt: current.createdAt,
+      updatedAt: _clock(),
+    );
+    _debtsRevision++;
+    _persist();
+    notifyListeners();
+    return const ActionResult(true, 'Debt updated.');
+  }
+
+  /// Adds [amount] to what has been paid (or received). Rejects anything
+  /// above the remaining balance; marks the debt paid when nothing is left.
+  ActionResult recordDebtPayment(String id, double amount) {
+    if (!_canWriteDebts) return _loginFirst;
+    final idx = _debts.indexWhere((d) => d.id == id);
+    if (idx < 0) return const ActionResult(false, 'Debt not found.');
+    final debt = _debts[idx];
+    if (!debt.isActive) {
+      return const ActionResult(false, 'This debt is already fully paid.');
+    }
+    final amountError = _amountError(amount, what: 'payment');
+    if (amountError != null) return ActionResult(false, amountError);
+
+    final payment = roundMoney(amount);
+    if (payment > debt.remaining) {
+      return ActionResult(
+          false, 'That\'s more than the ${formatPeso(debt.remaining)} left.');
+    }
+
+    final updated = debt.copyWith(
+      amountPaid: roundMoney(debt.amountPaid + payment),
+      updatedAt: _clock(),
+    );
+    _debts[idx] = updated;
+    _debtsRevision++;
+    _persist();
+    notifyListeners();
+    return ActionResult(
+      true,
+      updated.isFullyPaid
+          ? '${formatPeso(payment)} recorded. This debt is fully paid!'
+          : '${formatPeso(payment)} recorded. '
+              '${formatPeso(updated.remaining)} left.',
+    );
+  }
+
+  ActionResult deleteDebt(String id) {
+    if (!_canWriteDebts) return _loginFirst;
+    final before = _debts.length;
+    _debts.removeWhere((d) => d.id == id);
+    if (_debts.length == before) {
+      return const ActionResult(false, 'Debt not found.');
+    }
+    _debtsRevision++;
+    _persist();
+    notifyListeners();
+    return const ActionResult(true, 'Debt deleted.');
+  }
+
+  /// Re-reads the signed-in user's debts from Supabase. Unsaved local
+  /// changes are written first and are never overwritten.
+  Future<ActionResult> refreshDebts() async {
+    if (!_canWriteDebts) return _loginFirst;
+    if (_debtsLoading) return const ActionResult(true, 'Already refreshing.');
+    final uid = _user.id;
+    _debtsLoading = true;
+    _debtsError = null;
+    notifyListeners();
+    try {
+      _persist(); // retries anything that failed earlier
+      await _pendingSave;
+      if (_user.id != uid) return _loginFirst; // signed out meanwhile
+      if (_syncError != null) {
+        _debtsError =
+            'Some changes haven\'t been saved yet. Check your connection and try again.';
+        return ActionResult(false, _debtsError!);
+      }
+      final revision = _debtsRevision;
+      final loaded = await _backend.loadDebts(uid);
+      if (_user.id != uid) return _loginFirst;
+      // Only swap in the server copy if nothing changed locally meanwhile.
+      if (revision == _debtsRevision) {
+        _debts
+          ..clear()
+          ..addAll(loaded);
+      }
+      return const ActionResult(true, 'Debts refreshed.');
+    } on BackendException catch (e) {
+      _debtsError = e.message;
+      return ActionResult(false, e.message);
+    } finally {
+      _debtsLoading = false;
+      notifyListeners();
+    }
+  }
+
   // --- budgets -------------------------------------------------------------
 
   /// Creates the monthly budget for [category], or updates its limit.
@@ -737,6 +999,7 @@ class AppStateProvider extends ChangeNotifier {
     _goals.clear();
     _budgetDefs.clear();
     _upcoming.clear();
+    _debts.clear();
     _missions = [];
     _achievements.clear();
     _unlockedCustomization.clear();
@@ -919,6 +1182,7 @@ class AppStateProvider extends ChangeNotifier {
       goals: List.of(_goals),
       budgets: List.of(_budgetDefs),
       upcoming: List.of(_upcoming),
+      debts: List.of(_debts),
       missions: List.of(_missions),
       achievements: Set.of(_achievements),
       unlockedCustomization: Set.of(_unlockedCustomization),

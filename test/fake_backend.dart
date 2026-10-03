@@ -1,3 +1,4 @@
+import 'package:bucks/models/debt.dart';
 import 'package:bucks/models/user.dart';
 import 'package:bucks/services/bucks_backend.dart';
 
@@ -11,6 +12,7 @@ class FakeBackend implements BucksBackend {
   String? _currentEmail;
   int _n = 0;
   bool failSaves = false;
+  bool failDebtLoads = false;
 
   @override
   String? get currentUserId => _current;
@@ -57,6 +59,12 @@ class FakeBackend implements BucksBackend {
     final acct = _accounts.values.firstWhere((a) => a.id == userId);
     return StoredData(
         user: User(id: userId, username: acct.username, email: _currentEmail ?? ''));
+  }
+
+  @override
+  Future<List<Debt>> loadDebts(String userId) async {
+    if (failDebtLoads) throw const BackendException('offline');
+    return List.of(_db[userId]?.debts ?? const <Debt>[]);
   }
 
   @override

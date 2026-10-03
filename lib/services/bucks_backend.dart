@@ -1,4 +1,5 @@
 import '../models/budget.dart';
+import '../models/debt.dart';
 import '../models/mission.dart';
 import '../models/savings_goal.dart';
 import '../models/transaction.dart';
@@ -15,6 +16,7 @@ class StoredData {
   final List<SavingsGoal> goals;
   final List<Budget> budgets;
   final List<UpcomingItem> upcoming;
+  final List<Debt> debts;
   final List<Mission> missions;
   final Set<String> achievements;
   final Set<String> unlockedCustomization;
@@ -28,6 +30,7 @@ class StoredData {
     this.goals = const [],
     this.budgets = const [],
     this.upcoming = const [],
+    this.debts = const [],
     this.missions = const [],
     this.achievements = const {},
     this.unlockedCustomization = const {},
@@ -81,6 +84,9 @@ abstract class BucksBackend {
 
   /// Loads (creating the profile / stats rows if missing) the user's data.
   Future<StoredData> loadUserData(String userId);
+
+  /// Re-reads only the signed-in user's debts (used by Debt Tracker refresh).
+  Future<List<Debt>> loadDebts(String userId);
 
   /// Writes whatever changed since the last successful load/save.
   /// Throws if anything could not be written; the next call retries.

@@ -8,12 +8,12 @@ Student finance manager built with Flutter. Auth and data live in Supabase.
 
 AppStateProvider is the in-memory state; Supabase is the only persistent store.
 The signed-in user's `auth.users.id` owns every row. Row Level Security
-(`supabase/schema.sql`) stops one user from reading another user's data.
+(`lib/supabase/schema.sql`) stops one user from reading another user's data.
 
 ## Setup
 
 1. Create a Supabase project.
-2. In the dashboard open **SQL Editor**, paste `supabase/schema.sql`, and run it.
+2. In the dashboard open **SQL Editor**, paste `lib/supabase/schema.sql`, and run it.
 3. Copy `.env.example` to `.env` and fill in your project URL and **public**
    (anon / publishable) key from Project Settings > API.
 4. Run:
@@ -23,6 +23,30 @@ The signed-in user's `auth.users.id` owns every row. Row Level Security
 
 `.env` is git-ignored. Never put the service-role key, database password or
 AI keys in this app.
+
+### Debt Tracker
+
+Open **Goals > Debt Tracker** to track:
+
+- **Money I Owe** - things you still have to pay back (e.g. a laptop installment).
+- **Money Owed to Me** - money friends or others still owe you.
+
+Each debt has a title, an optional person/organization, an original amount,
+an optional due date and notes. Use **Record Payment** to add what you have
+actually paid (or received); the remaining balance is calculated
+(`original - paid`), a payment can never be larger than what remains, and a
+debt becomes **Paid** automatically when nothing remains.
+
+Debts are obligations, not cash movements: adding or paying a debt does not
+create a transaction or change your balance.
+
+Debts live in their own `debts` table in Supabase. Every row is owned by one
+`auth.users.id`, and Row Level Security lets a signed-in user select, insert,
+update and delete only their own rows.
+
+**Existing project?** Run `lib/supabase/migrations/2026-10-03_add_debts.sql`
+once in Supabase > SQL Editor > New query. It only adds the `debts` table and
+its policies; it does not touch existing tables or data.
 
 ## Tests
 
