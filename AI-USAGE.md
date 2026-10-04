@@ -126,6 +126,7 @@ I decided that the feature should support:
 I also modified the code that the ai gave me so that a debt should not automatically create an income or expense transaction because a debt record and an actual financial transaction represent different things.
 
 AI helped with parts of the implementation, while I decided how the feature should behave and integrated it into the existing BUCKS structure. I tested the feature after integrating it with the application.
+
 ---
 
 ## 2. Where the AI Got It Wrong
@@ -173,8 +174,8 @@ Another issue I encountered was when the AI generated or modified code based on 
 I compared the generated code with my existing project structure, adjusted the imports and connections, and tested the affected features again. This taught me that AI needs to understand the existing codebase before making large changes. I learned to check how my current files, routes, and providers are connected instead of simply replacing existing code with generated code.
 
 **Commit:** [View commit](https://github.com/Vernuh/Bucks/commit/1e5a5b6a8ff565b15636b8be1be4affe90bba743)
----
 
+---
 ## 3. Who Wrote What
 
 AI was involved heavily in the development of BUCKS, but there are also significant parts of the application that I personally designed, implemented, modified, configured, and tested.
@@ -270,6 +271,7 @@ I tested:
 - new feature integration
 
 When something did not work, I used AI to help understand the error when necessary, then modified the implementation and tested it again.
+
 ---
 ## 4. AI-Written Code That I Understand
 
@@ -332,6 +334,7 @@ My general workflow was:
 10. Commit the working version
 
 I used AI as a development assistant rather than treating it as the person building the application for me. And still, I needed to understand the project structure, make decisions about the features, configure external services, test the application, and decide whether an AI suggestion actually made sense for BUCKS.
+
 ---
 ## 7. AI Tools Used
 
