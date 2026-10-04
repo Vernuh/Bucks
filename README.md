@@ -369,7 +369,7 @@ AI-generated code and suggestions should be reviewed, tested, and adapted to the
 
 For detailed disclosure of AI tools and how they were used, see:
 
-[AI-USAGE.md](AI-USAGE.md)
+[AI-USAGE.md](https://github.com/Vernuh/Bucks/blob/main/AI-USAGE.md)
 
 ---
 

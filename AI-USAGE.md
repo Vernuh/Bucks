@@ -371,6 +371,7 @@ I encountered problems involving:
 - integrating different features
 
 I had to test the generated code, identify problems, modify implementations, and make decisions about how each feature should work. The project also evolved as I learned more, such as initially experimenting with a local database before deciding that Supabase was a better fit for BUCKS. The most important thing I learned was that generating code is not the same as building an application because I still needed to understand how the different pieces worked together, make design and architecture decisions, test the application, and fix problems when the generated solution did not work. AI helped me build BUCKS faster, but I was still responsible for turning those suggestions into a working application.
+
 ---
 ## AI Credit
 
