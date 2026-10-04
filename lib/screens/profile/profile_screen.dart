@@ -5,17 +5,7 @@ import '../../app/routes.dart';
 import '../../providers/app_state_provider.dart';
 import '../../utils/formatters.dart';
 
-/// The Profile ("Account") tab: header, Bucks + profile picture row,
-/// a dark summary card, a "View history" button, and Settings/Sign Out
-/// buttons.
-///
-/// Every value (level, XP, Bucks Coins, streak, total savings, total
-/// expenses, username) is read from [AppStateProvider].
-///
-/// Bucks' character reuses the same Icons.emoji_nature placeholder the
-/// Home and Bucks tabs already use, for visual consistency, without
-/// touching BucksCompanion's file. There's no real profile photo asset
-/// either, so that's an Icons.person placeholder.
+/// The Profile ("Account") tab: header, Bucks + profile picture row, a dark summary card, a "View history" button, and Settings/Sign Out buttons.
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
@@ -140,8 +130,7 @@ class ProfileScreen extends StatelessWidget {
   }
 }
 
-/// Bright blue header: "BUCKS" (gold, left), the real level (white,
-/// right), thin yellow XP progress bar along the bottom.
+/// Bright blue header: "BUCKS" (gold, left), the real level (white, right), thin yellow XP progress bar along the bottom.
 class _ProfileHeader extends StatelessWidget {
   final Color blue;
   final Color yellow;

@@ -1,16 +1,10 @@
 import 'package:flutter/material.dart';
 
-/// A shop item. This is the STATIC catalog entry only — whether it is
-/// unlocked or equipped is user state kept by AppStateProvider (as ids),
-/// and the Bucks Coins balance lives on the user.
-///
-/// There are no real Bucks art assets yet, so [icon] is a placeholder.
+/// A shop item. 
+/// There are no real Bucks art assets yet, so icon is a placeholder.
 class CustomizationItem {
   final String id;
   final String name;
-
-  /// One of [CustomizationCatalog.categories]. Only one item per category
-  /// can be equipped at a time.
   final String category;
   final int cost;
   final IconData icon;

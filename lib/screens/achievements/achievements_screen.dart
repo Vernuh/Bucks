@@ -4,8 +4,7 @@ import 'package:provider/provider.dart';
 import '../../models/achievement.dart';
 import '../../providers/app_state_provider.dart';
 
-/// Lists every achievement and whether it is unlocked. Unlock state comes
-/// from [AppStateProvider], which grants each reward exactly once.
+/// Lists every achievement and whether it is unlocked. 
 class AchievementsScreen extends StatelessWidget {
   const AchievementsScreen({super.key});
 

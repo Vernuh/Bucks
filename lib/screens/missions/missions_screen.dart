@@ -4,9 +4,7 @@ import 'package:provider/provider.dart';
 import '../../models/mission.dart';
 import '../../providers/app_state_provider.dart';
 
-/// Today's three missions. Completion happens automatically when the user
-/// really does the action (log an expense, save money, open Reports...) —
-/// there is nothing to tick here.
+/// Today's three missions. Completion happens automatically when the user really does the action 
 class MissionsScreen extends StatelessWidget {
   const MissionsScreen({super.key});
 

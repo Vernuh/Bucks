@@ -1,10 +1,6 @@
 /// Income and expenses are the two "real" money-in / money-out types.
-/// [savings] is a contribution to a [SavingsGoal]: money moved out of the
-/// available balance, but NOT counted as an expense.
 enum TransactionType { income, expense, savings }
 
-/// A single entry in the user's history. There is exactly one object per
-/// entry; every screen derives its numbers from the shared list.
 class Transaction {
   final String id;
   final TransactionType type;

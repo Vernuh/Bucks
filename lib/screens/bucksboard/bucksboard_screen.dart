@@ -4,8 +4,7 @@ import 'package:provider/provider.dart';
 import '../../providers/app_state_provider.dart';
 
 /// The global leaderboard needs an online backend that doesn't exist yet,
-/// so this screen does NOT fake one. It shows an honest empty state plus
-/// the user's own stats on this device.
+/// It shows an honest empty state plus the user's own stats on their device.
 class BucksboardScreen extends StatelessWidget {
   const BucksboardScreen({super.key});
 

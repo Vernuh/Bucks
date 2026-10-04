@@ -1,9 +1,6 @@
 /// A monthly spending limit for one expense category
 /// (e.g. "Food: ₱3,000 / month").
-///
-/// Only [id], [category] and [limit] are persisted. [spent] is DERIVED from
-/// the shared transaction list by AppStateProvider and is never stored, so
-/// Home and the Budget screen can never disagree.
+
 class Budget {
   final String id;
   final String category;

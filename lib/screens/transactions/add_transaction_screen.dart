@@ -6,18 +6,10 @@ import '../../models/transaction.dart';
 import '../../providers/app_state_provider.dart';
 import '../../theme/app_theme.dart';
 
-/// UI-only entry type for this screen's toggle. This is separate from
-/// [TransactionType] in models/transaction.dart because "Savings" here
-/// means "contribute to a SavingsGoal", not a new transaction category —
-/// those are different concepts once we wire up real data.
 enum _EntryType { income, expense, savings }
 
-/// The "Add" bottom-nav tab: lets the user log an income/expense entry
-/// or contribute to a savings goal.
-///
-/// Save hands the entry to [AppStateProvider], which stores it, updates
-/// budgets / goals / missions / achievements, and persists everything.
-/// This screen only collects input and shows the result.
+/// The "Add" bottom-nav tab: lets the user log an income/expense entry or contribute to a savings goal.
+
 class AddTransactionScreen extends StatefulWidget {
   const AddTransactionScreen({super.key});
 

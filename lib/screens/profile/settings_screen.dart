@@ -4,8 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/app_state_provider.dart';
 
-/// Edit the display name, reset account data, and (debug builds only) set
-/// the Bucks Coins balance for testing purchases.
+/// Edit the display name, reset account data, and (debug builds only) set the Bucks Coins balance for testing purchases.
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 

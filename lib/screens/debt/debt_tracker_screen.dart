@@ -6,10 +6,6 @@ import '../../providers/app_state_provider.dart';
 import '../../utils/formatters.dart';
 import '../debt/debt_dialogs.dart';
 
-/// Debt Tracker: "Money I Owe" and "Money Owed to Me".
-///
-/// Reads everything from [AppStateProvider] (which loads/saves through
-/// Supabase). This screen holds no database logic and no sample data.
 class DebtTrackerScreen extends StatefulWidget {
   const DebtTrackerScreen({super.key});
 

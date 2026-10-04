@@ -5,8 +5,7 @@ import '../../models/transaction.dart';
 import '../../providers/app_state_provider.dart';
 import '../../utils/formatters.dart';
 
-/// Full transaction history, newest first, read straight from
-/// [AppStateProvider]. Adding transactions happens on the "Add" tab.
+/// Full transaction history, newest first, read straight from [AppStateProvider]. Adding transactions happens on the "Add" tab.
 class TransactionsScreen extends StatelessWidget {
   const TransactionsScreen({super.key});
 

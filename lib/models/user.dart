@@ -1,7 +1,4 @@
-/// The app user's profile and progression. There is exactly one Bucks Coins
-/// balance ([buckCoins]) and one XP value ([xp]) in the whole app, and they
-/// live here. Level is DERIVED from [xp] by AppStateProvider.
-///
+/// The app user's profile and progression. 
 /// Authentication is handled by Supabase Auth; no password is ever stored here.
 class User {
   final String id;

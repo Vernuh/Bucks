@@ -5,14 +5,6 @@ import '../providers/app_state_provider.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/main_shell.dart';
 
-/// Decides what the user sees based on the Supabase session:
-///
-///   restoring session / loading data -> loading screen
-///   no session                       -> Login
-///   session + data loaded            -> BUCKS (MainShell)
-///
-/// The main app is never shown with placeholder data while the signed-in
-/// user's data is still loading.
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 

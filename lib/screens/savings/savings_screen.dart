@@ -7,17 +7,8 @@ import '../../models/savings_goal.dart';
 import '../../providers/app_state_provider.dart';
 import '../../utils/formatters.dart';
 
-/// The "Goals" bottom-nav tab.
-///
-/// The class is still named [SavingsScreen] because `main_shell.dart`
-/// references it directly by that name, and that file is off-limits
-/// to modify here — but this now implements the full Goals dashboard:
-/// Bucks message, savings goal card(s), Create Goal, Budget Planner,
-/// and a Reports chart.
-///
-/// Goals and chart data come from [AppStateProvider]: the goal list is the
-/// shared one (so Add Transaction, Profile and Reports see the same goals)
-/// and the charts are derived from the real transactions.
+/// Goals dashboard: Bucks message, savings goal card(s), Create Goal, Budget Planner, and a Reports chart.
+
 class SavingsScreen extends StatelessWidget {
   const SavingsScreen({super.key});
 

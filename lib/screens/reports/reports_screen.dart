@@ -6,7 +6,6 @@ import '../../providers/app_state_provider.dart';
 import '../../utils/formatters.dart';
 
 /// Reports & Charts, drawn with plain Flutter widgets (no chart package)
-/// from the same shared transactions/goals every other screen uses.
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
 

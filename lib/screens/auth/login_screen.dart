@@ -4,8 +4,7 @@ import 'package:provider/provider.dart';
 import '../../app/routes.dart';
 import '../../providers/app_state_provider.dart';
 
-/// Logs in with Supabase Auth. On success AppStateProvider loads the user's
-/// data and AuthGate shows BUCKS Home.
+/// Logs in with Supabase Auth. 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 

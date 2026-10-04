@@ -3,9 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/app_state_provider.dart';
 
-/// Creates a Supabase Auth account. The database creates the profile and
-/// stats rows for the new auth.users.id; the new user starts with empty
-/// transactions, goals and budgets.
+/// Creates a Supabase Auth account. 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 

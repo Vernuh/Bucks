@@ -2,16 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// Central place for BUCKS' colors, typography, and ThemeData.
-///
-/// Keeping this in one file makes it easy to tweak the whole app's look
-/// later. If this file gets too big, we'll split it into
-/// `app_colors.dart` and `app_text_styles.dart`.
+
 class AppTheme {
   AppTheme._(); // prevents accidentally creating an instance of this class
 
   // --- Colors -----------------------------------------------------------
-  // Warm, friendly, game-like palette. Not final — easy to adjust once
-  // we see real screens.
+  // Warm, friendly, game-like palette. 
   static const Color primary = Color(0xFFFFB020); // coin gold
   static const Color secondary = Color(0xFF2ECC71); // healthy-money green
   static const Color danger = Color(0xFFE74C3C); // over-budget warning

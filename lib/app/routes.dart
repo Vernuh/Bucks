@@ -14,15 +14,6 @@ import '../screens/customize-bucks/customize_bucks_screen.dart';
 import '../screens/achievements/achievements_screen.dart';
 import '../screens/chat/chat_screen.dart';
 
-
-/// All named routes for BUCKS live here. Keeping them as constants
-/// avoids typos when navigating (e.g. `Navigator.pushNamed(context, Routes.transactions)`).
-///
-/// Note: Home, Bucks, Add, Goals (Savings), and Profile are no longer
-/// separate named routes — they're tabs inside [MainShell], switched
-/// with local state rather than the Navigator. Everything below is
-/// either a pre-login screen or a screen reached by pushing on top of
-/// the shell (e.g. tapping "Budget Planner" inside the Goals tab).
 class Routes {
   Routes._();
 

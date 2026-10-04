@@ -1,98 +1,452 @@
-# BUCKS
+# BUCKS: Your Student Finance Manager 🐣💰
 
-Student finance manager built with Flutter. Auth and data live in Supabase.
+**A gamified personal finance application designed to make money management simpler, more engaging, and easier to understand.**
 
-## Architecture
+---
 
-    Screen -> AppStateProvider -> SupabaseService -> Supabase (Auth + Postgres + RLS)
+## My Project Repository
 
-AppStateProvider is the in-memory state; Supabase is the only persistent store.
-The signed-in user's `auth.users.id` owns every row. Row Level Security
-(`lib/supabase/schema.sql`) stops one user from reading another user's data.
+* **Public repository:** https://github.com/Vernuh/Bucks
+* **Live app:** Not deployed yet T^T
 
-## Setup
+## What It Is
 
-1. Create a Supabase project.
-2. In the dashboard open **SQL Editor**, paste `lib/supabase/schema.sql`, and run it.
-3. Copy `.env.example` to `.env` and fill in your project URL and **public**
-   (anon / publishable) key from Project Settings > API.
-4. Run:
+**BUCKS: Your Student Finance Manager** is a gamified personal finance application designed to help users, especially students and young adults, develop better financial habits. It provides an engaging way to track income and expenses, manage budgets, monitor savings goals, and keep track of debts.
 
-       flutter pub get
-       flutter run -d chrome --dart-define-from-file=.env
+BUCKS features a friendly virtual companion named **Bucks**, who motivates users through daily missions, achievements, rewards, and AI-powered financial insights. By combining practical financial tools with gamification, BUCKS aims to make personal finance more approachable, interactive, and enjoyable.
 
-`.env` is git-ignored. Never put the service-role key, database password or
-AI keys in this app.
+The application is built with Flutter and uses Supabase for authentication and cloud data storage, with Gemini AI planned for the AI-powered assistant.
 
-### Debt Tracker
+---
 
-Open **Goals > Debt Tracker** to track:
+## Features
 
-- **Money I Owe** - things you still have to pay back (e.g. a laptop installment).
-- **Money Owed to Me** - money friends or others still owe you.
+### 💰 1. Income and Expense Tracking
 
-Each debt has a title, an optional person/organization, an original amount,
-an optional due date and notes. Use **Record Payment** to add what you have
-actually paid (or received); the remaining balance is calculated
-(`original - paid`), a payment can never be larger than what remains, and a
-debt becomes **Paid** automatically when nothing remains.
+* Record income and expenses.
+* Categorize financial transactions.
+* View transaction history.
+* Monitor how money is earned and spent.
+* Keep financial records organized.
 
-Debts are obligations, not cash movements: adding or paying a debt does not
-create a transaction or change your balance.
+### 📊 2. Budget Planner
 
-Debts live in their own `debts` table in Supabase. Every row is owned by one
-`auth.users.id`, and Row Level Security lets a signed-in user select, insert,
-update and delete only their own rows.
+* Create and manage budgets.
+* Set spending limits.
+* Monitor expenses against budgets.
+* Track remaining budget amounts.
+* Improve spending awareness.
 
-**Existing project?** Run `lib/supabase/migrations/2026-10-03_add_debts.sql`
-once in Supabase > SQL Editor > New query. It only adds the `debts` table and
-its policies; it does not touch existing tables or data.
+### 🎯 3. Savings Goals
 
-## Tests
+* Create personalized savings goals.
+* Set target amounts.
+* Track savings progress.
+* Monitor how much is saved and how much remains.
+* Stay motivated while working toward financial goals.
 
-    flutter analyze
-    flutter test
+### 💳 4. Debt Tracker
 
-## Gemini AI Setup
+* Track money you owe to other people.
+* Track money other people owe you.
+* Record payments and amounts received.
+* Monitor remaining balances.
+* Set due dates and view debt status.
 
-Buck's Chat and Buck's Insights use Gemini through a Supabase Edge Function:
+Debt records are kept separate from transactions so that creating a debt does not automatically count as income or an expense :P
 
-    ChatScreen -> AiService -> Edge Function `bucks-ai` -> Gemini API
+### 📈 5. Reports and Charts
 
-The Gemini API key lives **only** as a Supabase Edge Function secret. The
-Flutter app never receives it and never calls Gemini directly.
+* Visualize income and expenses.
+* Monitor savings progress.
+* Compare savings and spending.
+* Review financial activity.
+* Understand financial habits through charts and summaries.
 
-1. Create a Gemini API key in [Google AI Studio](https://aistudio.google.com/app/apikey).
-2. **Do not** put it in Flutter, `.env`, `.env.example`, assets or Git.
-3. Install the [Supabase CLI](https://supabase.com/docs/guides/cli), then link your project and store the key as a secret:
+### 🏆 6. Daily Missions
 
-       supabase login
-       supabase link --project-ref YOUR_PROJECT_REF
-       supabase secrets set GEMINI_API_KEY=your_gemini_api_key
+* Complete daily financial activities.
+* Develop consistent money-management habits.
+* Earn Bucks rewards and experience points.
+* Track mission completion.
 
-   (Optional) pick another model: `supabase secrets set GEMINI_MODEL=gemini-3.5-flash`
-4. Deploy the function. The function verifies the user's login itself, so deploy
-   with gateway JWT verification off (this works with both legacy and new JWT signing keys):
+### 🎖️ 7. Achievements and Rewards
 
-       supabase functions deploy bucks-ai --no-verify-jwt
+* Unlock achievements by reaching financial milestones.
+* Earn Bucks rewards and XP.
+* Track progress and accomplishments.
+* Use earned Bucks for supported companion customization items.
 
-5. Run the app as usual:
+### 🐣 8. Bucks Virtual Companion
 
-       flutter run -d chrome --dart-define-from-file=.env
+* Interact with a friendly virtual companion.
+* Receive encouraging messages and financial reminders.
+* Make financial management more engaging through gamification.
+* Customize Bucks as supported features become available.
 
-What the function does: it checks the caller is a signed-in user, reads **that
-user's own** transactions, budgets, goals and stats with their token (so Row
-Level Security applies), sends Gemini only a compact summary (no email, notes
-or ids), and returns `{ "reply": "..." }`. It limits each user to 20 questions
-per 10 minutes.
+### 🤖 9. AI Financial Assistant
 
-Keep in mind:
-- `.env` is private and git-ignored. `.env.example` is safe to commit.
-- `GEMINI_API_KEY` is server-side only.
-- The Supabase **service-role** key must never be put in the app or the repo.
-  The function does not use it.
+* Ask financial questions through the Bucks assistant.
+* Receive general budgeting and saving guidance.
+* Explore personalized financial insights based on available financial data.
 
-Tests for the function's logic (needs [Deno](https://deno.com) or Node 22+):
+The AI assistant is intended to provide supportive guidance, not professional financial advice. AI features depend on the Gemini integration being configured and available.
 
-    cd supabase/functions/bucks-ai
-    deno test logic_test.ts        # or: node --test logic_test.ts
+### 🌐 10. BucksBoard (not avail yet)
+
+* View a leaderboard-style experience.
+* Display user progress and earned Bucks or XP.
+* Encourage positive engagement through friendly competition.
+
+---
+
+## Technologies Used
+
+| Technology                        | Purpose                                 |
+| --------------------------------- | --------------------------------------- |
+| Flutter                           | Cross-platform application development  |
+| Dart                              | Main programming language               |
+| Material 3                        | User interface and design system        |
+| Provider                          | State management                        |
+| Supabase Authentication           | User registration and login             |
+| Supabase Database                 | Cloud storage for user data             |
+| Supabase Row Level Security (RLS) | Protect user-specific records           |
+| Supabase Edge Functions           | Secure server-side AI integration       |
+| Gemini AI                         | AI assistant and financial insights     |
+| Git and GitHub                    | Version control and source code hosting |
+
+---
+
+## How to Run It
+
+### Requirements
+
+Install the following before running the project:
+
+* Flutter SDK
+* Dart SDK (included with Flutter)
+* Git
+* Visual Studio Code or another compatible IDE
+* Google Chrome for Flutter Web
+* A configured Supabase project
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/YOUR-USERNAME/YOUR-REPO.git
+```
+
+### 2. Navigate to the Project Folder
+
+```bash
+cd BUCKS
+```
+
+Use the actual folder name created when cloning the repository if it differs.
+
+### 3. Install Dependencies
+
+```bash
+flutter pub get
+```
+
+### 4. Configure Environment Variables
+
+Create a `.env` file in the project root by copying `.env.example`.
+
+For example:
+
+```env
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_PUBLIC_KEY=your_supabase_public_key
+```
+
+Replace the placeholder values with the appropriate public configuration from your Supabase project.
+
+**Important:**
+
+* Do not commit `.env` to GitHub (pls lang).
+* Use only the Supabase public/anon or publishable key in the Flutter client.
+* Never include a Supabase service-role key or Gemini API key in the Flutter application (!!!!!).
+* Ensure `.env` is included in `.gitignore`.
+
+### 5. Configure Supabase
+
+Create or use a Supabase project and apply the database schema and migrations included in the repository.
+
+Ensure that:
+
+* Supabase Authentication is configured.
+* Required database tables exist.
+* Row Level Security (RLS) is enabled on user-specific tables.
+* Policies restrict access to each user's own data.
+* Any required Edge Functions are deployed.
+
+Do not reset an existing database to install the project. Apply the appropriate migrations safely.
+
+### 6. Configure Gemini AI (If Enabled)
+
+The Gemini API key should be stored as a server-side Supabase Edge Function secret, not in the Flutter app.
+
+For example, configure the secret using the Supabase CLI:
+
+```bash
+npx supabase secrets set GEMINI_API_KEY=YOUR_GEMINI_API_KEY
+```
+
+Deploy the relevant Edge Function using the project's existing Supabase setup instructions.
+
+Only configure AI if the feature is implemented and required for the version you are running.
+
+### 7. Run the Application
+
+To run BUCKS in Google Chrome:
+
+```bash
+flutter run -d chrome
+```
+
+Alternatively, to run it using the web-server device:
+
+```bash
+flutter run -d web-server
+```
+
+Open the local URL displayed in the terminal if using the web-server option.
+
+---
+
+## How to Use
+
+### 1. Create an Account or Log In
+
+Register a new account or sign in using the existing authentication screen.
+
+### 2. Explore the Dashboard
+
+View the available financial summaries, shortcuts, and Bucks companion messages.
+
+### 3. Add Transactions
+
+Record income or expenses to keep your financial activity up to date.
+
+### 4. Manage Your Budget
+
+Set spending limits and review your expenses to understand how you are using your money.
+
+### 5. Create Savings Goals
+
+Set a savings target and monitor your progress as you work toward it.
+
+### 6. Track Debts
+
+Open the Debt Tracker from the Savings and Goals section. Add money you owe or money owed to you, then record payments as they occur.
+
+### 7. Review Reports
+
+Explore your financial charts and summaries to better understand your income, spending, and savings.
+
+### 8. Complete Missions
+
+Participate in available daily missions to build consistent financial habits and earn rewards.
+
+### 9. Explore Bucks
+
+Interact with the virtual companion, view achievements, and access available customization options.
+
+### 10. Use the AI Assistant
+
+If AI integration is enabled, ask Bucks for general financial guidance and insights.
+
+---
+
+## Project Structure
+
+The project follows a feature-based Flutter structure. The exact files may vary as development continues.
+
+```text
+BUCKS/
+├── android/
+├── assets/
+├── ios/
+├── lib/
+│   ├── app/
+│   │   ├── app.dart
+│   │   └── routes.dart
+│   ├── models/
+│   ├── providers/
+│   │   └── app_state_provider.dart
+│   ├── screens/
+│   │   ├── auth/
+│   │   ├── home/
+│   │   ├── transactions/
+│   │   ├── budget/
+│   │   ├── savings/
+│   │   ├── debt/
+│   │   ├── reports/
+│   │   ├── missions/
+│   │   ├── bucksboard/
+│   │   └── profile/
+│   ├── services/
+│   ├── widgets/
+│   ├── theme/
+│   │   └── app_theme.dart
+│   └── main.dart
+├── supabase/
+│   ├── functions/
+│   │   └── bucks-ai/
+│   ├── migrations/
+│   └── schema.sql
+├── test/
+├── .env.example
+├── .gitignore
+├── pubspec.yaml
+├── README.md
+├── AI-USAGE.md
+└── SECURITY-CHECKLIST.md
+```
+
+Some folders may only exist if their associated features have been implemented.
+
+---
+
+## Database and Data Management
+
+BUCKS uses Supabase to store and manage application data for authenticated users.
+
+Depending on the implemented features, the database may include tables for:
+
+* User profiles
+* Transactions
+* Budgets
+* Savings goals
+* Debts
+* Missions
+* Achievements
+* Bucks rewards and customization
+
+The application uses Provider for shared in-app state and a service layer to communicate with Supabase.
+
+### Data Privacy
+
+Row Level Security (RLS) is used to restrict access to user-specific records. Users should only be able to access or modify the records they own.
+
+Debt information is stored separately from savings goals and transactions to maintain clear financial records.
+
+---
+
+## Security
+
+BUCKS is designed to keep user data and credentials protected.
+
+Security practices include:
+
+* Keeping `.env` out of version control.
+* Using only public client-safe Supabase credentials in Flutter.
+* Keeping service-role credentials out of the client.
+* Storing the Gemini API key on the server side when AI integration is enabled.
+* Using Supabase RLS to protect user-specific financial records.
+* Avoiding real personal or financial information in sample data.
+* Validating user input before submitting financial records.
+
+Before public release, the repository's commit history, environment files, and configuration should be checked for accidentally committed secrets or private information.
+
+---
+
+## AI Usage
+
+BUCKS uses AI assistance during development and may provide AI-powered features within the application through Gemini.
+
+AI tools may be used to assist with:
+
+* Code generation and debugging.
+* Understanding Flutter and Supabase implementation.
+* Improving application structure.
+* Drafting documentation.
+* Developing the Bucks AI assistant and financial insights.
+
+AI-generated code and suggestions should be reviewed, tested, and adapted to the project's requirements.
+
+For detailed disclosure of AI tools and how they were used, see:
+
+[AI-USAGE.md](AI-USAGE.md)
+
+---
+
+## Testing
+
+The application should be tested to verify that its main features work as expected.
+
+Recommended checks include:
+
+* User registration and login.
+* Authentication session restoration.
+* Adding, viewing, updating, and deleting transactions.
+* Creating and managing budgets.
+* Creating and updating savings goals.
+* Adding debts and recording payments.
+* Calculating remaining debt balances correctly.
+* Completing missions and receiving rewards.
+* Loading user-specific data from Supabase.
+* Ensuring users cannot access other users' private records.
+* Running the app on supported screen sizes.
+
+### Run Static Analysis
+
+```bash
+flutter analyze
+```
+
+### Run Tests
+
+```bash
+flutter test
+```
+
+### Run the Application
+
+```bash
+flutter run -d chrome
+```
+
+The results of these checks should be updated to reflect the actual tests performed on the submitted version.
+
+---
+
+## Known Issues and Future Improvements
+
+BUCKS is an ongoing project, and features may continue to be improved.
+
+Potential future improvements include:
+
+* Completing and refining the AI assistant.
+* Adding more Bucks companion animations and reactions.
+* Expanding Bucks customization options.
+* Improving the responsiveness of screens across devices.
+* Enhancing financial charts and reports.
+* Improving mission variety and achievement tracking.
+* Expanding testing and error handling.
+* Deploying the web application for public access.
+
+Only features verified in the submitted version should be described as fully implemented.
+
+---
+
+## Presentation
+
+* **Video (public Google Drive link):** https://...
+* **Slides (link or PDF):** https://...
+* **Square image:** Add the project image to this folder or provide a link.
+
+---
+
+## Acknowledgments
+
+BUCKS was developed cause my ex likes to save up (lol shout out to you maem) and she doesn't feel like any of the finance app can fit her perfectly so I developed BUCKS the way she likes it, the way how she wants to use it, and the way that will make saving money easier for her. (they call me the final boss yearner for a reason)
+
+Also very special shout-out to my so so so cool professor, sir TJ wahahah, for the guidance, patience, encouragement, and lessons throughout this project. Your support and the way you encouraged us to actually build, experiment, make mistakes, and learn from them made a huge difference in my development as a student and aspiring developer.
+
+so yeah pls enjoy the app, it was my first project :P
+---
+
+**BUCKS — Small steps, smarter money habits. 🐣💰** - Verhuh, Bucks creator

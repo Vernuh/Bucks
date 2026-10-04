@@ -1,8 +1,5 @@
 enum MissionCategory { budget, tracking, savings, learning, streak }
 
-/// The real user action that completes a mission. Missions are completed by
-/// AppStateProvider when it sees the matching action, never by a tap on a
-/// checkbox.
 enum MissionAction {
   logExpense,
   logIncome,

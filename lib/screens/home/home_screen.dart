@@ -9,17 +9,7 @@ import '../../utils/formatters.dart';
 
 /// The Home dashboard tab: blue header, Bucks + today's budget message,
 /// balance/spent cards, Daily Missions, and Upcoming items.
-///
-/// Every number here comes from [AppStateProvider]: balance and spent
-/// today are derived from the shared transactions, missions/level/XP from
-/// the shared progress state, and upcoming items from the shared list.
-///
-/// Note on Bucks' character: we're not embedding the [BucksCompanion]
-/// widget directly here, since its Row + speech-bubble-card layout
-/// doesn't match this screen's side-by-side plain-text + ground-shadow
-/// look. Instead we reuse the same icon it uses to represent Bucks
-/// (Icons.emoji_nature) so the visual language stays consistent,
-/// without modifying that widget's file.
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 

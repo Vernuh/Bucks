@@ -1,11 +1,5 @@
 /// Central place for build-time configuration.
-///
-/// Values are injected with `--dart-define-from-file=.env` (see README), so
-/// no credentials live in source code and nothing extra is bundled as an
-/// asset. Only the PUBLIC Supabase key is ever used here; data security is
-/// enforced by Supabase Auth + Row Level Security, not by hiding this key.
-///
-/// NEVER add a service-role key, database password or AI secret to the app.
+
 class AppConfig {
   AppConfig._();
 

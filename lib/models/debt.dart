@@ -1,9 +1,6 @@
 import '../utils/formatters.dart';
 
 /// Which direction the money flows.
-///
-///   iOwe      -> the user owes someone else  (DB value `i_owe`)
-///   owedToMe  -> someone else owes the user  (DB value `owed_to_me`)
 enum DebtType {
   iOwe('i_owe'),
   owedToMe('owed_to_me');
@@ -37,9 +34,7 @@ double roundMoney(double v) => (v * 100).round() / 100;
 int _cents(double v) => (v * 100).round();
 
 /// One debt: money the user owes, or money owed to the user.
-///
-/// Only the original amount and the amount paid are stored. The remaining
-/// balance and the status are DERIVED, so they can never disagree.
+
 class Debt {
   final String id;
   final String userId;

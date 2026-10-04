@@ -5,9 +5,7 @@ import '../../theme/app_theme.dart';
 
 /// Chat with Bucks. Questions go to AiService, which asks the `bucks-ai`
 /// Edge Function (Gemini runs there, never in the app).
-///
-/// If the route is opened with a String argument (e.g. from Buck's Insights),
-/// that text is sent automatically as the first question.
+
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key, this.aiService});
 
