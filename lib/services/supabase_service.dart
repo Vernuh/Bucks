@@ -19,14 +19,6 @@ import 'bucks_backend.dart';
 /// The only class that talks to Supabase (Auth + PostgreSQL).
 ///
 ///   Screen -> AppStateProvider -> SupabaseService -> Supabase
-///
-/// Uses only the PUBLIC key; Row Level Security (see supabase/schema.sql)
-/// guarantees a user can only touch rows whose owner is their own
-/// auth.users.id.
-///
-/// Saving is diff-based: the service remembers what it last read/wrote per
-/// table and only sends rows that changed. If a write fails, the memory is
-/// NOT updated, so the next save retries the same changes.
 class SupabaseService implements BucksBackend {
   SupabaseService._();
   static final SupabaseService instance = SupabaseService._();

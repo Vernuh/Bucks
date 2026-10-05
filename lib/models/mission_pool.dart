@@ -1,7 +1,6 @@
 import 'mission.dart';
 
-/// A predefined mission. The pool below is local and deterministic —
-/// no AI is involved in choosing or completing missions.
+/// A predefined mission.
 class MissionTemplate {
   final String id;
   final String title;

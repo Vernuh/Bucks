@@ -24,8 +24,6 @@ class AiException implements Exception {
   String toString() => message;
 }
 
-/// Low-level failure from the network layer (HTTP status + the error code
-/// returned by the Edge Function, if any). Mapped to [AiException] below.
 class AiTransportException implements Exception {
   final int? status;
   final String? code;
@@ -39,10 +37,7 @@ typedef AiTransport = Future<Map<String, dynamic>> Function(
 /// Talks to Gemini ONLY through the `bucks-ai` Supabase Edge Function:
 ///
 ///   ChatScreen -> AiService -> Edge Function -> Gemini
-///
-/// The app never sees the Gemini key and never calls Gemini directly. The
-/// Edge Function reads the signed-in user's financial data itself, so this
-/// class only sends the question (plus recent chat turns).
+
 class AiService {
   AiService({
     AiTransport? transport,
@@ -63,8 +58,6 @@ class AiService {
   /// How long to wait for Bucks before giving up.
   final Duration timeout;
 
-  /// Asks Bucks a question about the signed-in user's own finances.
-  /// Throws [AiException] (with a user-friendly message) on any problem.
   Future<String> askBucksAssistant(
     String question, {
     List<AiTurn> history = const [],

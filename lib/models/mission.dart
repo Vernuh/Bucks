@@ -13,8 +13,6 @@ enum MissionAction {
   anyActivity,
 }
 
-/// One of today's missions. Bucks Coins ([bucksReward]) are spendable;
-/// XP ([xpReward]) is not.
 class Mission {
   /// Unique per day: "<date>_<templateId>".
   final String id;

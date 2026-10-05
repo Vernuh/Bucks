@@ -6,10 +6,9 @@ import 'providers/app_state_provider.dart';
 import 'services/supabase_service.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsFlutterBinding.ensureInitialized(); // make sure flutter is up
 
-  // 1. Initialize Supabase. Missing configuration is a clear development
-  //    error, never silently replaced with fake credentials.
+  // 1. Initialize Supabase.
   try {
     await SupabaseService.initialize();
   } catch (e) {
@@ -17,12 +16,11 @@ Future<void> main() async {
     return;
   }
 
-  // 2. Restore the existing Supabase session (if any) and load that
-  //    user's data. The UI shows a loading screen until this finishes.
+  // 2. Restore the existing Supabase session (if any) and load that user's data. The UI shows a loading screen until this finishes.
   final appState = AppStateProvider();
-  appState.restoreSession();
+  appState.restoreSession(); // meron na bang loging session yung user?
 
-  runApp(
+  runApp( // app running
     MultiProvider(
       providers: [
         ChangeNotifierProvider<AppStateProvider>.value(value: appState),

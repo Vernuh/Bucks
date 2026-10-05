@@ -25,22 +25,13 @@ class ActionResult {
   const ActionResult(this.success, this.message);
 }
 
-/// Where the app is in the sign-in lifecycle. The UI shows a loading screen
-/// until the signed-in user's data has been loaded from Supabase.
 enum AuthStatus { initializing, signedOut, signedIn, loadFailed }
 
 /// The ONE in-memory source of truth for the current user's data.
 ///
-///   Screen -> AppStateProvider (logic) -> SupabaseService -> Supabase
-///   AppStateProvider -> notifyListeners() -> every watching screen
-///
-/// Supabase (Auth + PostgreSQL) is the only PERSISTENT store. Changes are
-/// applied in memory immediately and written to Supabase right after; a
-/// failed write is kept and retried (see [syncError] / [retrySync]).
-///
-/// Screens read getters and call methods here. They never compute balances,
-/// grant rewards, or touch Bucks Coins / customization state themselves.
-class AppStateProvider extends ChangeNotifier {
+///   Screen -> AppStateProvider (logic) -> SupabaseService -> Supabase -> AppStateProvider -> notifyListeners() -> every watching screen
+
+class AppStateProvider extends ChangeNotifier { // tells the screen that something changed
   AppStateProvider({BucksBackend? backend, DateTime Function()? clock})
       : _backend = backend ?? SupabaseService.instance,
         _clock = clock ?? DateTime.now;
@@ -50,6 +41,7 @@ class AppStateProvider extends ChangeNotifier {
 
   // --- state ---------------------------------------------------------------
   User _user = User(id: '', username: '');
+  // private datas
   final List<Transaction> _transactions = []; // oldest -> newest
   final List<SavingsGoal> _goals = [];
   final List<Budget> _budgetDefs = []; // limits only; spent is derived
@@ -477,9 +469,7 @@ class AppStateProvider extends ChangeNotifier {
 
   // --- transactions --------------------------------------------------------
 
-  /// Adds an income, expense or savings contribution. For
-  /// [TransactionType.savings], [goalId] must be an existing goal and that
-  /// SAME goal's saved amount is increased.
+  /// Adds an income, expense or savings contribution. 
   ActionResult addTransaction({
     required TransactionType type,
     required double amount,
