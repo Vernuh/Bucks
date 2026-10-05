@@ -3,12 +3,10 @@ import 'package:provider/provider.dart';
 
 import '../../models/customization_item.dart';
 import '../../providers/app_state_provider.dart';
+import '../../widgets/bucks_avatar.dart';
 
 /// Customize Bucks: buy and equip outfits, hats and accessories.
-///
-/// All state (balance, unlocked, equipped) lives in [AppStateProvider] and
-/// the static catalog lives in [CustomizationCatalog]. This screen only
-/// displays them and calls the provider's purchase/equip methods.
+
 class CustomizeBucksScreen extends StatelessWidget {
   const CustomizeBucksScreen({super.key});
 
@@ -87,7 +85,7 @@ class CustomizeBucksScreen extends StatelessWidget {
           alignment: Alignment.bottomCenter,
           children: [
             Container(
-              width: 110,
+              width: 140,
               height: 20,
               decoration: BoxDecoration(
                 color: _green,
@@ -95,9 +93,8 @@ class CustomizeBucksScreen extends StatelessWidget {
               ),
             ),
             const Padding(
-              padding: EdgeInsets.only(bottom: 8),
-              // Placeholder until real Bucks art exists.
-              child: Icon(Icons.pets, size: 90, color: Color(0xFF8D5A2B)),
+              padding: EdgeInsets.only(bottom: 4),
+              child: BucksAvatar(size: 180),
             ),
           ],
         ),

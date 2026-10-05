@@ -434,19 +434,32 @@ Only features verified in the submitted version should be described as fully imp
 
 ## Presentation
 
-* **Video (public Google Drive link):** https://...
-* **Slides (link or PDF):** https://...
-* **Square image:** Add the project image to this folder or provide a link.
+| File | What goes in it |
+| --- | --- |
+| [01-proposal.md](01-proposal.md) | the problem, the users, the scope, the storage decision |
+| [02-mockup.md](02-mockup.md) | the mockup images, plus your wireframes and screen flow |
+| [03-design-system.md](03-design-system.md) | palette, type scale, spacing, components, **plus a visual PDF or image** |
+| [04-weekly-reports.md](04-weekly-reports.md) | one short entry per week, added as you go |
+| [05-demo-video.md](05-demo-video.md) | the recording and what it shows |
+| [06-security-and-privacy.md](06-security-and-privacy.md) | the checklist, filled in and dated |
+| `assets/` | screenshots, wireframe photos, diagrams |
 
 ---
 
 ## Acknowledgments
 
-BUCKS was developed cause my ex likes to save up (lol shout out to you maem) and she doesn't feel like any of the finance app can fit her perfectly so I developed BUCKS the way she likes it, the way how she wants to use it, and the way that will make saving money easier for her. (they call me the final boss yearner for a reason)
+BUCKS was developed cause my ex likes to save up and keep tracking her money (lol shout out to you maem ure my muse :>) and she doesn't feel like any of the finance app can fit her perfectly so I developed BUCKS the way she likes it, the way how she wants to use it, and the way that will make saving money easier for her. (they call me yearner fianl boss for a reason)
 
 Also very special shout-out to my so so so cool professor, sir TJ wahahah, for the guidance, patience, encouragement, and lessons throughout this project. Your support and the way you encouraged us to actually build, experiment, make mistakes, and learn from them made a huge difference in my development as a student and aspiring developer.
 
 so yeah pls enjoy the app, it was my first project :P
+
 ---
 
-**BUCKS — Small steps, smarter money habits. 🐣💰** - Verhuh, Bucks creator
+**BUCKS — Small steps, smarter money habits.** ~ Verhuh, Bucks creator
+
+License
+---
+The source code of BUCKS is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+Third-party assets used in BUCKS, including artwork, icons, fonts, images, sounds, libraries, and other resources, are subject to their respective licenses and are not necessarily covered by the MIT License.

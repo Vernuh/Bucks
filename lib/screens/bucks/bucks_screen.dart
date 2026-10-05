@@ -1,3 +1,4 @@
+import '../../widgets/bucks_avatar.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -301,27 +302,10 @@ class _BucksCharacter extends StatelessWidget {
             ),
           ),
 
-          // Character placeholder
-          Positioned(
-            bottom: 18,
-            child: Container(
-              width: 125,
-              height: 125,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(28),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
-              ),
-              child: const Center(
-                child: Text('🐔', style: TextStyle(fontSize: 72)),
-              ),
-            ),
+          // Bucks character
+          const Positioned(
+            bottom: 8,
+            child: BucksAvatar(size: 200),
           ),
         ],
       ),

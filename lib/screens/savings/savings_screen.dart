@@ -1,3 +1,4 @@
+import '../../widgets/bucks_avatar.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -286,8 +287,7 @@ class _GoalsHeader extends StatelessWidget {
 }
 
 /// Bucks icon on a green ground shadow (left) + the goal-progress
-/// message (right). Reuses the same Icons.emoji_nature placeholder
-/// used on the other tabs, without touching BucksCompanion's file.
+/// message (right). Uses the shared [BucksAvatar] image.
 class _BucksGoalSection extends StatelessWidget {
   final String message;
 
@@ -310,12 +310,8 @@ class _BucksGoalSection extends StatelessWidget {
               ),
             ),
             const Padding(
-              padding: EdgeInsets.only(bottom: 6),
-              child: Icon(
-                Icons.emoji_nature,
-                size: 56,
-                color: Color(0xFF8D5A2B),
-              ),
+              padding: EdgeInsets.only(bottom: 2),
+              child: BucksAvatar(size: 110),
             ),
           ],
         ),

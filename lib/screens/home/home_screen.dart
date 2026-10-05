@@ -1,3 +1,4 @@
+import '../../widgets/bucks_avatar.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -408,12 +409,8 @@ class _BucksDashboardSection extends StatelessWidget {
               ),
             ),
             const Padding(
-              padding: EdgeInsets.only(bottom: 6),
-              child: Icon(
-                Icons.emoji_nature,
-                size: 56,
-                color: Color(0xFF8D5A2B),
-              ),
+              padding: EdgeInsets.only(bottom: 2),
+              child: BucksAvatar(size: 110),
             ),
           ],
         ),

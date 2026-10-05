@@ -1,3 +1,4 @@
+import '../../widgets/bucks_avatar.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -221,12 +222,8 @@ class _ProfileCharacterRow extends StatelessWidget {
               ),
             ),
             const Padding(
-              padding: EdgeInsets.only(bottom: 8),
-              child: Icon(
-                Icons.emoji_nature,
-                size: 80,
-                color: Color(0xFF8D5A2B),
-              ),
+              padding: EdgeInsets.only(bottom: 4),
+              child: BucksAvatar(size: 150),
             ),
           ],
         ),
