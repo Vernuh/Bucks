@@ -16,6 +16,8 @@ class CustomizationItem {
     this.cost,
     this.icon,
   );
+
+  String get imagePath => 'assets/bucks/items/$id.png';
 }
 
 class CustomizationCatalog {

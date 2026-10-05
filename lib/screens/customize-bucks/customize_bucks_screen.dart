@@ -65,12 +65,6 @@ class CustomizeBucksScreen extends StatelessWidget {
                 _grid(context, app, category),
               ],
               const SizedBox(height: 16),
-              Text(
-                'Item pictures are placeholder icons until the final Bucks '
-                'art is added.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
-              ),
             ],
           ),
         ),
@@ -178,7 +172,17 @@ class CustomizeBucksScreen extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Icon(item.icon, size: 34, color: _blue),
+          SizedBox(
+            height: 56,
+            width: double.infinity,
+            child: Image.asset(
+              item.imagePath,
+              fit: BoxFit.contain,
+              filterQuality: FilterQuality.none,
+              errorBuilder: (_, _, _) =>
+                  Icon(item.icon, size: 34, color: _blue),
+            ),
+          ),
           const SizedBox(height: 6),
           Expanded(
             child: Center(
