@@ -19,7 +19,7 @@ import 'bucks_backend.dart';
 /// The only class that talks to Supabase (Auth + PostgreSQL).
 ///
 ///   Screen -> AppStateProvider -> SupabaseService -> Supabase
-class SupabaseService implements BucksBackend {
+class SupabaseService implements BucksBackend { // backend operations na kailangan ni BUCKS
   SupabaseService._();
   static final SupabaseService instance = SupabaseService._();
 
@@ -28,7 +28,7 @@ class SupabaseService implements BucksBackend {
     AppConfig.ensureConfigured();
     await sb.Supabase.initialize(
       url: AppConfig.supabaseUrl,
-      publishableKey: AppConfig.supabasePublicKey,
+      publishableKey: AppConfig.supabasePublicKey, // connects BUCKS to supabase 
     );
   }
 

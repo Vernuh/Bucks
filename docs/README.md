@@ -1,7 +1,7 @@
 # BUCKS: Your Student Finance Manager 🐣💰
 
 **A gamified personal finance application designed to make money management simpler, more engaging, and easier to understand.**
-<img width="1080" height="1080" alt="BUCKS" src="https://github.com/user-attachments/assets/c87d46af-9b72-4f68-88af-ffe680aaf95d" />
+<img width="1080" height="1080" alt="BUCKS" src="/docs/assets/BUCKS Square Image.png" />
 
 ---
 

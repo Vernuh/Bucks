@@ -973,6 +973,21 @@ class AppStateProvider extends ChangeNotifier { // tells the screen that somethi
     return ActionResult(true, '${item.name} equipped!');
   }
 
+  /// Unequips an equipped item (the category becomes empty).
+  ActionResult unequipCustomizationItem(String itemId) {
+    final item = CustomizationCatalog.byId(itemId);
+    if (item == null) return const ActionResult(false, 'Item not found.');
+    if (_equippedCustomization[item.category] != itemId) {
+      return ActionResult(false, '${item.name} is not equipped.');
+    }
+
+    _equippedCustomization.remove(item.category);
+    _setEvent('Bawk! Switching up the look!');
+    _persist();
+    notifyListeners();
+    return ActionResult(true, '${item.name} unequipped.');
+  }
+
   // --- reset / debug -------------------------------------------------------
 
   /// Deletes this account's BUCKS data in Supabase (the login account itself

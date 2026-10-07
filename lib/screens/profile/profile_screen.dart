@@ -221,9 +221,12 @@ class _ProfileCharacterRow extends StatelessWidget {
                 borderRadius: BorderRadius.circular(100),
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.only(bottom: 4),
-              child: BucksAvatar(size: 150),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: BucksAvatar(
+                size: 150,
+                equipped: context.watch<AppStateProvider>().equippedItems,
+              ),
             ),
           ],
         ),

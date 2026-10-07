@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../app/routes.dart';
 import '../../models/achievement.dart';
+import '../../models/customization_item.dart';
 import '../../providers/app_state_provider.dart';
 
 class BucksScreen extends StatelessWidget {
@@ -30,7 +31,7 @@ class BucksScreen extends StatelessWidget {
               const _BucksHeader(),
 
               // BUCKS CHARACTER
-              const _BucksCharacter(),
+              _BucksCharacter(equipped: equipped),
 
               // EQUIPPED CUSTOMIZATION (same state Customize Bucks edits)
               Padding(
@@ -276,7 +277,9 @@ class _BucksHeader extends StatelessWidget {
 
 // BUCKS CHARACTER
 class _BucksCharacter extends StatelessWidget {
-  const _BucksCharacter();
+  final List<CustomizationItem> equipped;
+
+  const _BucksCharacter({required this.equipped});
 
   static const Color _groundGreen = Color(0xFF218B0D);
 
@@ -303,9 +306,9 @@ class _BucksCharacter extends StatelessWidget {
           ),
 
           // Bucks character
-          const Positioned(
+          Positioned(
             bottom: 8,
-            child: BucksAvatar(size: 200),
+            child: BucksAvatar(size: 200, equipped: equipped),
           ),
         ],
       ),

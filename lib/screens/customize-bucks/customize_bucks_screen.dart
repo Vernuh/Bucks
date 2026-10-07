@@ -19,7 +19,9 @@ class CustomizeBucksScreen extends StatelessWidget {
     final app = context.read<AppStateProvider>();
     final ActionResult result;
 
-    if (app.isCustomizationUnlocked(item.id)) {
+    if (app.isCustomizationEquipped(item.id)) {
+      result = app.unequipCustomizationItem(item.id);
+    } else if (app.isCustomizationUnlocked(item.id)) {
       result = app.equipCustomizationItem(item.id);
     } else {
       result = app.purchaseCustomizationItem(item.id);
@@ -86,9 +88,9 @@ class CustomizeBucksScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(100),
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.only(bottom: 4),
-              child: BucksAvatar(size: 180),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: BucksAvatar(size: 180, equipped: equipped),
             ),
           ],
         ),
@@ -105,7 +107,8 @@ class CustomizeBucksScreen extends StatelessWidget {
         Text(
           equipped.isEmpty
               ? 'Nothing equipped yet'
-              : 'Equipped: ${equipped.map((i) => i.name).join(', ')}',
+              : 'Equipped: ${equipped.map((i) => i.name).join(', ')}\n'
+                  'Tap an equipped item to unequip it.',
           textAlign: TextAlign.center,
           style: const TextStyle(color: _navy, fontSize: 12),
         ),

@@ -28,3 +28,4 @@ flutter:
   assets:
     - assets/bucks/
     - assets/bucks/items/
+    - assets/bucks/customization/

@@ -408,9 +408,12 @@ class _BucksDashboardSection extends StatelessWidget {
                 borderRadius: BorderRadius.circular(100),
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.only(bottom: 2),
-              child: BucksAvatar(size: 110),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 2),
+              child: BucksAvatar(
+                size: 110,
+                equipped: context.watch<AppStateProvider>().equippedItems,
+              ),
             ),
           ],
         ),
