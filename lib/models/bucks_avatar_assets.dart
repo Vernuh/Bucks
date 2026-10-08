@@ -1,12 +1,12 @@
 import 'customization_item.dart';
 
-/// File pattern: `[outfit]_[hat]_[accessory].png`, hat/accessory optional.
+/// File pattern: `[outfit]_[hat]_[accessory].png
 class BucksAvatarAssets {
   BucksAvatarAssets._();
 
   static const String basePath = 'assets/bucks/bucks_base.png';
 
-  /// Folder that holds the 48 combined PNGs (declared in pubspec.yaml).
+  /// Folder that holds the  combined PNGs 
   static const String directory = 'assets/bucks/customization';
 
   // item id -> filename token
@@ -26,8 +26,13 @@ class BucksAvatarAssets {
     'acc_golden_glasses': 'golden_glasses',
   };
 
-  static String _path(String outfit, String? hat, String? acc) =>
-      '$directory/${[outfit, ?hat, ?acc].join('_')}.png';
+  /// Builds the file path from whichever parts are present. Returns
+  /// [basePath] when nothing at all is equipped.
+  static String _path(String? outfit, String? hat, String? acc) {
+    final parts = [?outfit, ?hat, ?acc];
+    if (parts.isEmpty) return basePath;
+    return '$directory/${parts.join('_')}.png';
+  }
 
   /// Asset for the given item ids.
   static String getBucksAvatarAsset({
@@ -35,9 +40,11 @@ class BucksAvatarAssets {
     String? hat,
     String? accessory,
   }) {
-    final o = _outfitTokens[outfit];
-    if (o == null) return basePath;
-    return _path(o, _hatTokens[hat], _accessoryTokens[accessory]);
+    return _path(
+      _outfitTokens[outfit],
+      _hatTokens[hat],
+      _accessoryTokens[accessory],
+    );
   }
 
   /// Same thing, from the provider's equipped list.
@@ -48,11 +55,9 @@ class BucksAvatarAssets {
         accessory: _idIn(equipped, CustomizationCatalog.accessories),
       );
 
-  /// Closest-first list of assets to try if a file fails to load:
-  /// full combo, outfit+hat, outfit+accessory, outfit, base.
+  /// Closest-first list of assets to try if a file fails to load
   static List<String> candidatesFor(List<CustomizationItem> equipped) {
     final outfit = _outfitTokens[_idIn(equipped, CustomizationCatalog.outfits)];
-    if (outfit == null) return const [basePath];
     final hat = _hatTokens[_idIn(equipped, CustomizationCatalog.hats)];
     final acc =
         _accessoryTokens[_idIn(equipped, CustomizationCatalog.accessories)];
@@ -64,12 +69,12 @@ class BucksAvatarAssets {
     add(_path(outfit, hat, acc));
     if (hat != null) add(_path(outfit, hat, null));
     if (acc != null) add(_path(outfit, null, acc));
-    add(_path(outfit, null, null));
+    if (outfit != null) add(_path(outfit, null, null));
     add(basePath);
     return out;
   }
 
-  /// All 48 expected combined assets (3 outfits x 4 hats x 4 accessories).
+  /// All combined assets (3 outfits x 4 hats x 4 accessories).
   static List<String> get allCombinationAssets => [
         for (final o in _outfitTokens.values)
           for (final h in [null, ..._hatTokens.values])
