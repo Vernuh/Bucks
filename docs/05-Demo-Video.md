@@ -16,7 +16,7 @@ A short list, in order, so a viewer can skip to what they need:
 
 The demo showcases the application's main user journey, key features, user interface, and technologies used during development. It also highlights development challenges and possible future improvements.
 
-- **Duration:** 9:54 minutes
+- **Duration:** 11 minutes T^T
 - **Recorded on:** OBS Studio
 - **Platform:** YouTube
 - **Visibility:** Unlisted
